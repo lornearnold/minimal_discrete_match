@@ -19,6 +19,8 @@ author:
     affiliation: University of Washington Tacoma
     corresponding: true
 bibliography: references.bib
+csl: harvard-anglia-ruskin-university.csl
+cite-method: citeproc
 editor: 
   markdown: 
     wrap: sentence
