@@ -50,6 +50,7 @@ Discrete soil description, discrete element method, open-source algorithms, comp
 ## Introduction
 
 ```{python}
+# Does this do anything?
 import sys
 sys.path.append('..')
 import math
