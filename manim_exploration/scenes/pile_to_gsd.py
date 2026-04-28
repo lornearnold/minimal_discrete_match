@@ -1,17 +1,18 @@
-"""Storyboard page 3: retained piles map to a mass-vs-size plot.
+"""Storyboard page 3: retained piles + 3-bar cumulative-mass approximation.
 
-Carries the design language from `sieve_stack`: same color tiers, same
-particle radii, same per-tier counts (8 / 22 / 65). Three piles sit on the
-left, separated by dashed datum lines (representing the sieves they were
-retained on); on the right, axes show a smooth cumulative-mass curve and
-three colored slices whose areas correspond to the retained masses on each
-sieve. A caption reminds the viewer that real soil has many more grains
-than the figure can render.
+Three piles (only a few particles each, scattered with natural jitter) sit
+on the left, separated by dashed sieve datums. On the right, an axes shows
+three colored bars: each bar spans one sieve interval and reaches the
+cumulative mass at the right edge of that interval. The bar colors run
+green -> blue -> red across the x-axis.
+
+This scene is the *discrete* picture. `ContinuumReveal` continues from
+this end state and refines it (3 -> 5 -> 9 -> 15 bars) while filling the
+left half with continuum-sized particles.
 """
 
 from __future__ import annotations
 
-import numpy as np
 from manim import (
     DOWN,
     LEFT,
@@ -20,15 +21,14 @@ from manim import (
     Axes,
     Create,
     DashedLine,
-    Dot,
     FadeIn,
-    Polygon,
     Scene,
     Text,
     VGroup,
     Write,
     config,
 )
+import numpy as np
 
 from _common import (
     BACKGROUND,
@@ -39,135 +39,109 @@ from _common import (
     FOREGROUND,
     MID,
     MID_R,
-    particle_cluster,
+    build_gsd_bars,
+    scatter_in_band,
 )
 
 config.background_color = BACKGROUND
 
 
-# Tier counts mirror the cloud in `sieve_stack` so the two scenes feel
-# continuous when watched back-to-back.
-N_COARSE, N_MID, N_FINE = 8, 22, 65
+# ---- Layout shared with ContinuumReveal so the handoff is seamless. ----
+
+# Left-half particle area.
+PILE_X = (-6.5, -0.6)
+
+# Stacked y-bands, coarse on top.
+COARSE_BAND = (1.0, 2.6)
+MID_BAND = (-0.5, 0.5)
+FINE_BAND = (-2.6, -1.0)
+
+# Datum y-positions (sieves drawn as dashed lines).
+DATUM_YS = (2.8, 0.75, -0.75, -2.8)
+DATUM_X = (-6.7, -0.4)
+
+# Pile counts: just a handful, so the eye reads "a few representative
+# particles" and so the continuum reveal has room to fill in.
+N_COARSE, N_MID, N_FINE = 4, 7, 12
+
+# Right-side axes / bar geometry.
+SIEVE_XS_3 = (1.3, 2.5, 3.6)
+X_LEFT = 0.3
 
 
-class PileToGSD(Scene):
-    def construct(self):
-        # ---- Left half: three particle piles separated by dashed datums.
-        # Roughly equal-area bboxes so each pile reads as the same "amount of
-        # stuff" visually — the visual story is about retained-mass parity,
-        # not particle count parity.
-        coarse_pile = particle_cluster(
-            count=N_COARSE, radius=COARSE_R, color=COARSE,
-            bbox=(1.7, 0.9), seed=1,
-        )
-        mid_pile = particle_cluster(
-            count=N_MID, radius=MID_R, color=MID,
-            bbox=(1.7, 0.9), seed=2,
-        )
-        fine_pile = particle_cluster(
-            count=N_FINE, radius=FINE_R, color=FINE,
-            bbox=(1.7, 0.9), seed=3,
-        )
+def build_piles(rng: np.random.Generator):
+    coarse = scatter_in_band(N_COARSE, COARSE_R, COARSE, COARSE_BAND, PILE_X, rng)
+    mid = scatter_in_band(N_MID, MID_R, MID, MID_BAND, PILE_X, rng)
+    fine = scatter_in_band(N_FINE, FINE_R, FINE, FINE_BAND, PILE_X, rng)
+    return coarse, mid, fine
 
-        piles = VGroup(coarse_pile, mid_pile, fine_pile).arrange(DOWN, buff=0.7)
-        piles.to_edge(LEFT, buff=1.0).shift(UP * 0.2)
 
-        # Dashed datum lines: the sieves the piles were retained on. One
-        # above each pile and one below the bottom pile (the pan).
-        datum_x_lo, datum_x_hi = -6.5, -2.0
-
-        def datum_at_y(y):
-            return DashedLine(
-                start=[datum_x_lo, y, 0],
-                end=[datum_x_hi, y, 0],
+def build_datums() -> VGroup:
+    return VGroup(
+        *[
+            DashedLine(
+                start=[DATUM_X[0], y, 0],
+                end=[DATUM_X[1], y, 0],
                 color=FOREGROUND,
                 stroke_width=1.5,
                 dash_length=0.12,
             )
+            for y in DATUM_YS
+        ]
+    )
 
-        datums = VGroup(
-            datum_at_y(coarse_pile.get_top()[1] + 0.3),
-            datum_at_y((coarse_pile.get_bottom()[1] + mid_pile.get_top()[1]) / 2),
-            datum_at_y((mid_pile.get_bottom()[1] + fine_pile.get_top()[1]) / 2),
-            datum_at_y(fine_pile.get_bottom()[1] - 0.3),
+
+def build_axes_and_labels():
+    axes = (
+        Axes(
+            x_range=[0, 4, 1],
+            y_range=[0, 4, 1],
+            x_length=4.6,
+            y_length=3.4,
+            tips=False,
+            axis_config={
+                "color": FOREGROUND,
+                "stroke_width": 2,
+                "include_ticks": False,
+            },
         )
+        .to_edge(RIGHT, buff=0.9)
+        .shift(DOWN * 0.2)
+    )
+    x_label = Text("grain size", font_size=22, color=FOREGROUND).next_to(
+        axes.x_axis, RIGHT, buff=0.15
+    )
+    y_label = Text("Mass", font_size=22, color=FOREGROUND).next_to(
+        axes.y_axis, UP, buff=0.15
+    )
+    return axes, x_label, y_label
 
-        self.play(Create(datums), run_time=0.8)
+
+class PileToGSD(Scene):
+    def construct(self):
+        rng = np.random.default_rng(13)
+
+        coarse_pile, mid_pile, fine_pile = build_piles(rng)
+        datums = build_datums()
+
+        self.play(Create(datums), run_time=0.7)
         self.play(
             FadeIn(coarse_pile, shift=DOWN * 0.2),
             FadeIn(mid_pile, shift=DOWN * 0.2),
             FadeIn(fine_pile, shift=DOWN * 0.2),
             run_time=1.0,
         )
-        self.wait(0.4)
+        self.wait(0.3)
 
-        # ---- Right half: mass vs. size axes.
-        axes = Axes(
-            x_range=[0, 4, 1],
-            y_range=[0, 4, 1],
-            x_length=4.6,
-            y_length=3.4,
-            tips=False,
-            axis_config={"color": FOREGROUND, "stroke_width": 2, "include_ticks": False},
-        ).to_edge(RIGHT, buff=0.9).shift(DOWN * 0.2)
-
-        x_label = Text("size", font_size=22, color=FOREGROUND).next_to(
-            axes.x_axis, RIGHT, buff=0.15
-        )
-        y_label = Text("Mass", font_size=22, color=FOREGROUND).next_to(
-            axes.y_axis, UP, buff=0.15
-        )
-
-        # Cumulative mass curve. Slope between consecutive sieve sizes
-        # corresponds to the retained mass on that sieve (the slice area).
-        def curve_func(x):
-            return 0.4 + 3.2 / (1 + np.exp(-2.2 * (x - 2.0)))
-
-        curve = axes.plot(
-            curve_func, x_range=[0.3, 3.8], color=FOREGROUND, stroke_width=3
-        )
+        axes, x_label, y_label = build_axes_and_labels()
+        bars = build_gsd_bars([X_LEFT, *SIEVE_XS_3], axes)
 
         self.play(Create(axes), Write(x_label), Write(y_label), run_time=0.9)
-        self.play(Create(curve), run_time=1.0)
+        self.play(*[FadeIn(b) for b in bars], run_time=1.0)
 
-        # ---- Three colored retained-mass slices, each anchored to a tier.
-        # The slice's vertical extent equals the curve's rise across the
-        # sieve interval — i.e., the retained mass on that sieve.
-        slices_spec = [
-            ((0.5, 1.3), FINE),    # finest grains  -> leftmost slice
-            ((1.5, 2.5), MID),
-            ((2.7, 3.6), COARSE),  # coarsest -> rightmost slice
-        ]
-
-        slice_mobjects = VGroup()
-        endpoint_dots = VGroup()
-        for (x0, x1), color in slices_spec:
-            xs = np.linspace(x0, x1, 32)
-            top_pts = [axes.c2p(x, curve_func(x)) for x in xs]
-            bottom_pts = [axes.c2p(x1, 0), axes.c2p(x0, 0)]
-            slice_mobjects.add(
-                Polygon(
-                    *top_pts, *bottom_pts,
-                    color=color,
-                    stroke_width=2.5,
-                    fill_opacity=0.22,
-                )
-            )
-            endpoint_dots.add(
-                Dot(
-                    point=axes.c2p(x1, curve_func(x1)),
-                    color=FOREGROUND,
-                    radius=0.07,
-                )
-            )
-
-        self.play(*[FadeIn(s) for s in slice_mobjects], run_time=1.1)
-        self.play(FadeIn(endpoint_dots), run_time=0.4)
-
-        # ---- Caption: real soil has many more grains than we can show.
         note = Text(
-            "Real soil holds many more grains than this —\n"
-            "counting them is infeasible.",
+            "Three sieves give a coarse picture —\n"
+            "real soil holds many more sizes.",
             font_size=22,
             color=FOREGROUND,
         ).to_edge(UP, buff=0.35)

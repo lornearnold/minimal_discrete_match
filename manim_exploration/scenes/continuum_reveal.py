@@ -1,173 +1,186 @@
-"""Bridge scene: a continuous spectrum of grain sizes <-> the smooth GSD curve.
+"""Bridge scene: 3 sieves -> 15 sieves, with the left half filling in.
 
-The other scenes use only three discrete particle tiers for clarity, but real
-soil contains a continuum of grain sizes. This beat establishes that
-correspondence once: a wide cloud of particles with many different radii on
-the left, paired with the smooth cumulative-mass curve on the right. After
-this, viewers can accept the three-tier simplification used elsewhere.
+Starts on the exact end state of `PileToGSD` (three stratified piles +
+dashed sieve datums on the left, three colored bars on the right). Then
+refines in three steps:
 
-There are no sieve lines or sorting in this scene — the message is purely
-"the smooth curve represents a real continuum of sizes."
+  step 1: 3 -> 5 bars; datums fade out; ~30 continuum particles trickle in.
+  step 2: 5 -> 9 bars; ~50 more particles.
+  step 3: 9 -> 15 bars; ~80 more particles.
+
+New particles fill the whole left half; their radius is determined by
+their y-position (largest at the top). Because the original three piles
+were already stratified that way, the continuum particles blend in around
+them rather than overlaying as a separate cloud.
+
+The viewer reads this as: "more sieves -> finer approximation, more
+particle sizes -> the continuum that the GSD curve was always describing."
 """
 
 from __future__ import annotations
 
 import numpy as np
 from manim import (
-    DOWN,
-    RIGHT,
-    UP,
-    Axes,
     Create,
     FadeIn,
+    FadeOut,
     Scene,
     Text,
+    UP,
     VGroup,
     Write,
     config,
-    interpolate_color,
 )
 
 from _common import (
     BACKGROUND,
-    COARSE,
     COARSE_R,
-    FINE,
     FINE_R,
     FOREGROUND,
-    MID,
+    MID_R,
+    build_gsd_bars,
+    continuum_color,
     make_particle,
+    y_to_radius,
+)
+
+# Reuse the layout + builders from PileToGSD so the two scenes line up.
+from pile_to_gsd import (
+    DATUM_YS,
+    PILE_X,
+    SIEVE_XS_3,
+    X_LEFT,
+    build_axes_and_labels,
+    build_datums,
+    build_piles,
 )
 
 config.background_color = BACKGROUND
 
 
-# Continuous radius range. Much wider than the three-tier scenes use, so the
-# spectrum reads as a true continuum rather than three blurred categories.
-R_MIN = FINE_R * 0.3   # ~0.03 — visibly tiny grains
-R_MAX = COARSE_R * 1.3  # ~0.39 — clearly larger than the COARSE tier
+# Continuum radius range. Chosen so y_to_radius across the screen lands
+# the original tier sizes near their respective bands (top -> coarse-ish,
+# bottom -> fine-ish), letting the originals blend in.
+R_MIN_NEW = 0.05
+R_MAX_NEW = 0.34
 
-# Particle count — big enough that no two adjacent radii feel like a "tier".
-N_PARTICLES = 280
-
-
-def continuum_color(radius: float, r_min: float = R_MIN, r_max: float = R_MAX):
-    """Map a radius to a color along the FINE -> MID -> COARSE gradient.
-
-    Smaller particles take on the FINE (green) hue, mid-sized particles the
-    MID (blue) hue, and the largest particles the COARSE (red) hue. Provides
-    visual continuity with the three-tier scenes without quantizing.
-    """
-    t = (radius - r_min) / (r_max - r_min)
-    t = float(np.clip(t, 0.0, 1.0))
-    if t < 0.5:
-        return interpolate_color(FINE, MID, t * 2.0)
-    return interpolate_color(MID, COARSE, (t - 0.5) * 2.0)
+# Vertical extent of the left-half cloud.
+Y_SCREEN_LO, Y_SCREEN_HI = DATUM_YS[-1], DATUM_YS[0]  # bottom and top datums
 
 
-def place_with_soft_packing(
-    radii: np.ndarray,
-    bbox: tuple[float, float, float, float],
+def _try_place(
+    radius: float,
+    y: float,
+    obstacles: list[tuple[np.ndarray, float]],
     rng: np.random.Generator,
-    tries_per_particle: int = 30,
-    overlap_tolerance: float = 1.05,
-) -> list[np.ndarray]:
-    """Greedy placement: each particle picks the trial position with the
-    fewest overlaps. Place largest particles first so the big ones get prime
-    real estate.
+    tries: int = 50,
+    overlap_tolerance: float = 1.04,
+) -> np.ndarray | None:
+    """Find an x-position in PILE_X for a particle of `radius` at height `y`.
 
-    Some overlap is expected and acceptable — the colored strokes keep
-    overlapping particles readable.
+    Returns None if no spot with acceptable overlap is found. We allow a
+    small overlap budget so the cloud can densify even when packing is
+    tight; the colored strokes keep particles legible.
     """
-    x_lo, y_lo, x_hi, y_hi = bbox
-    order = np.argsort(-radii)  # descending
-    placed: list[tuple[np.ndarray, float]] = []
-    positions: list[np.ndarray | None] = [None] * len(radii)
+    x_lo, x_hi = PILE_X
+    best_pos = None
+    best_overlap = np.inf
+    for _ in range(tries):
+        x = rng.uniform(x_lo + radius, x_hi - radius)
+        pos = np.array([x, y, 0.0])
+        overlap = sum(
+            max(0.0, (radius + er) * overlap_tolerance - np.linalg.norm(pos - ep))
+            for ep, er in obstacles
+        )
+        if overlap < best_overlap:
+            best_overlap = overlap
+            best_pos = pos
+            if overlap == 0.0:
+                return pos
+    # Accept the best-found spot if its overlap is modest.
+    if best_overlap < radius * 0.6:
+        return best_pos
+    return None
 
-    for idx in order:
-        r = radii[idx]
-        best_pos = None
-        best_overlap = np.inf
-        for _ in range(tries_per_particle):
-            x = rng.uniform(x_lo + r, x_hi - r)
-            y = rng.uniform(y_lo + r, y_hi - r)
-            pos = np.array([x, y, 0.0])
-            overlap = sum(
-                max(0.0, (r + er) * overlap_tolerance - np.linalg.norm(pos - ep))
-                for ep, er in placed
-            )
-            if overlap < best_overlap:
-                best_overlap = overlap
-                best_pos = pos
-                if overlap == 0.0:
-                    break
-        positions[idx] = best_pos
-        placed.append((best_pos, r))
 
-    return positions
+def _generate_batch(
+    n: int,
+    obstacles: list[tuple[np.ndarray, float]],
+    rng: np.random.Generator,
+) -> VGroup:
+    """Generate `n` continuum particles whose radius follows their y."""
+    batch = VGroup()
+    for _ in range(n):
+        y = rng.uniform(Y_SCREEN_LO + 0.1, Y_SCREEN_HI - 0.1)
+        r = y_to_radius(y, Y_SCREEN_LO, Y_SCREEN_HI, R_MIN_NEW, R_MAX_NEW)
+        # A little vertical jitter so the size-vs-y rule isn't a perfect
+        # gradient — helps the originals blend in.
+        y_j = y + rng.uniform(-0.15, 0.15)
+        pos = _try_place(r, y_j, obstacles, rng)
+        if pos is None:
+            continue
+        color = continuum_color(r, R_MIN_NEW, R_MAX_NEW)
+        batch.add(make_particle(r, color).move_to(pos))
+        obstacles.append((pos, r))
+    return batch
 
 
 class ContinuumReveal(Scene):
     def construct(self):
-        rng = np.random.default_rng(11)
+        rng = np.random.default_rng(17)
 
-        # ---- Sample radii log-uniformly so all decades are represented.
-        log_radii = rng.uniform(np.log(R_MIN), np.log(R_MAX), N_PARTICLES)
-        radii = np.exp(log_radii)
+        # ---- Reproduce PileToGSD's end state exactly. ----
+        # Use the same RNG seed so the piles render in the same positions.
+        init_rng = np.random.default_rng(13)
+        coarse_pile, mid_pile, fine_pile = build_piles(init_rng)
 
-        # Place particles on the left half of the frame. Wider bbox + more
-        # placement tries to absorb the larger particle count gracefully.
-        cloud_bbox = (-6.8, -3.0, -0.3, 3.0)
-        positions = place_with_soft_packing(
-            radii, cloud_bbox, rng, tries_per_particle=50
+        datums = build_datums()
+        axes, x_label, y_label = build_axes_and_labels()
+        bars = build_gsd_bars([X_LEFT, *SIEVE_XS_3], axes)
+
+        self.add(
+            datums, coarse_pile, mid_pile, fine_pile,
+            axes, x_label, y_label, bars,
         )
+        self.wait(0.7)
 
-        cloud = VGroup()
-        for r, pos in zip(radii, positions):
-            cloud.add(make_particle(r, continuum_color(r)).move_to(pos))
+        # ---- Existing pile particles act as fixed obstacles. ----
+        obstacles: list[tuple[np.ndarray, float]] = []
+        for pile, r in (
+            (coarse_pile, COARSE_R),
+            (mid_pile, MID_R),
+            (fine_pile, FINE_R),
+        ):
+            for p in pile:
+                obstacles.append((p.get_center(), r))
 
-        self.play(FadeIn(cloud), run_time=1.4)
-        self.wait(0.8)
+        # ---- Refinement schedule: (n_sieves, n_new_particles). ----
+        steps = [(5, 30), (9, 50), (15, 80)]
 
-        # ---- Smooth GSD curve on the right.
-        axes = (
-            Axes(
-                x_range=[0, 4, 1],
-                y_range=[0, 4, 1],
-                x_length=4.6,
-                y_length=3.4,
-                tips=False,
-                axis_config={
-                    "color": FOREGROUND,
-                    "stroke_width": 2,
-                    "include_ticks": False,
-                },
-            )
-            .to_edge(RIGHT, buff=0.9)
-            .shift(DOWN * 0.2)
-        )
+        prev_bars = bars
+        first_step = True
 
-        x_label = Text("size", font_size=22, color=FOREGROUND).next_to(
-            axes.x_axis, RIGHT, buff=0.15
-        )
-        y_label = Text("Mass", font_size=22, color=FOREGROUND).next_to(
-            axes.y_axis, UP, buff=0.15
-        )
+        for n_sieves, n_new in steps:
+            new_edges = list(np.linspace(X_LEFT, SIEVE_XS_3[-1], n_sieves + 1))
+            new_bars = build_gsd_bars(new_edges, axes)
 
-        def curve_func(x):
-            return 0.4 + 3.2 / (1 + np.exp(-2.2 * (x - 2.0)))
+            new_particles = _generate_batch(n_new, obstacles, rng)
 
-        curve = axes.plot(
-            curve_func, x_range=[0.3, 3.8], color=FOREGROUND, stroke_width=3
-        )
+            anims = [
+                FadeOut(prev_bars),
+                FadeIn(new_bars),
+                FadeIn(new_particles, lag_ratio=0.04),
+            ]
+            if first_step:
+                anims.append(FadeOut(datums))
+                first_step = False
 
-        self.play(Create(axes), Write(x_label), Write(y_label), run_time=0.9)
-        self.play(Create(curve), run_time=1.0)
+            self.play(*anims, run_time=1.6)
+            prev_bars = new_bars
 
-        # ---- Caption establishing the correspondence.
         caption = Text(
-            "Real soil holds a continuum of grain sizes —\n"
-            "the smooth curve captures them all at once.",
+            "More sizes — finer approximation.\n"
+            "The smooth curve is the limit.",
             font_size=22,
             color=FOREGROUND,
         ).to_edge(UP, buff=0.35)

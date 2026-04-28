@@ -21,6 +21,7 @@ from manim import (
     WHITE,
     Circle,
     Line,
+    Polygon,
     VGroup,
     interpolate_color,
 )
@@ -149,6 +150,102 @@ def particle_cluster(
         y = -bh / 2 + dy * (j + 0.5) + rng.uniform(-dy * 0.05, dy * 0.05)
         cluster.add(make_particle(radius, color, stroke_width).move_to([x, y, 0]))
     return cluster
+
+
+# ---- GSD curve / bar helpers (shared by pile_to_gsd & continuum_reveal) -----
+
+
+def target_func(x: float) -> float:
+    """Reference cumulative-mass shape; bar tops sample this function."""
+    return 0.4 + 3.2 / (1 + np.exp(-2.2 * (x - 2.0)))
+
+
+def bar_color(x: float, x_lo: float, x_hi: float):
+    """Position-based color: leftmost = FINE (green), rightmost = COARSE (red)."""
+    t = float(np.clip((x - x_lo) / (x_hi - x_lo), 0, 1))
+    if t < 0.5:
+        return interpolate_color(FINE, MID, t * 2)
+    return interpolate_color(MID, COARSE, (t - 0.5) * 2)
+
+
+def build_gsd_bars(sieve_edges, axes, height_func=target_func) -> VGroup:
+    """Cumulative-mass bars (rectangles) approximating `height_func`.
+
+    `sieve_edges` is a list `[x_left, x_1, ..., x_n]`: the leftmost x plus
+    every sieve x. Bar i spans (sieve_edges[i-1], sieve_edges[i]) with top
+    height `height_func(sieve_edges[i])`. Bar color is gradient-based on
+    the bar's center x, FINE -> MID -> COARSE.
+    """
+    bars = VGroup()
+    x_lo = sieve_edges[0]
+    x_hi = sieve_edges[-1]
+    for i in range(1, len(sieve_edges)):
+        x0 = sieve_edges[i - 1]
+        x1 = sieve_edges[i]
+        h = height_func(x1)
+        center = (x0 + x1) / 2
+        bars.add(
+            Polygon(
+                axes.c2p(x0, 0),
+                axes.c2p(x1, 0),
+                axes.c2p(x1, h),
+                axes.c2p(x0, h),
+                color=bar_color(center, x_lo, x_hi),
+                stroke_width=1.0,
+                fill_opacity=0.6,
+            )
+        )
+    return bars
+
+
+def scatter_in_band(
+    n: int,
+    radius: float,
+    color,
+    band: tuple[float, float],
+    x_range: tuple[float, float],
+    rng: np.random.Generator,
+    max_tries: int = 200,
+) -> VGroup:
+    """Place `n` non-overlapping particles in a horizontal y-band.
+
+    Random scatter (not a grid), so the placement carries natural jitter.
+    Falls back to overlapping placement if no clean spot is found within
+    `max_tries`. Used both by the original three-tier piles and as a base
+    for the continuum cloud's stratified extension.
+    """
+    y_lo, y_hi = band
+    x_lo, x_hi = x_range
+    placed: list[tuple[float, float]] = []
+    for _ in range(n):
+        x = y = 0.0
+        for _ in range(max_tries):
+            x = rng.uniform(x_lo + radius, x_hi - radius)
+            y = rng.uniform(y_lo + radius, y_hi - radius)
+            ok = all(np.hypot(x - px, y - py) > 2.05 * radius for px, py in placed)
+            if ok:
+                break
+        placed.append((x, y))
+    cluster = VGroup()
+    for x, y in placed:
+        cluster.add(make_particle(radius, color).move_to([x, y, 0]))
+    return cluster
+
+
+def y_to_radius(
+    y: float, y_lo: float, y_hi: float, r_lo: float, r_hi: float
+) -> float:
+    """Linear y->radius map. y_hi -> r_hi (largest), y_lo -> r_lo (smallest)."""
+    t = float(np.clip((y - y_lo) / (y_hi - y_lo), 0, 1))
+    return r_lo + t * (r_hi - r_lo)
+
+
+def continuum_color(radius: float, r_lo: float, r_hi: float):
+    """Map a radius onto the FINE -> MID -> COARSE gradient."""
+    t = float(np.clip((radius - r_lo) / (r_hi - r_lo), 0, 1))
+    if t < 0.5:
+        return interpolate_color(FINE, MID, t * 2.0)
+    return interpolate_color(MID, COARSE, (t - 0.5) * 2.0)
 
 
 def mixed_cloud(
