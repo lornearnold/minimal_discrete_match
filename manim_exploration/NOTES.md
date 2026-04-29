@@ -30,4 +30,4 @@ Use this file to capture suggested changes for each Manim scene. Add bullets und
 
 # Script
 
-test
+When faced with a soil mechanics problem, we may need to simulate the soil itself. The problem with this is that simulating every single particle is very difficult, and we can't individually measure all the particles. To help with this, we can use sieves to find the weight of all the grains within a certain diameter, which we convert into a set of ratios, or "G". With enough sieves, you can achieve a smooth curve, but for this video we will only be using three. There are many sets of particles (or "S") that satisfy "G," but we are interested in finding the one with the least particles.
