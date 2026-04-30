@@ -59,7 +59,7 @@ class SieveStack(Scene):
         # ---- Build the particle cloud once. We re-use the same Mobjects for
         # all three beats (wide cloud -> condensed staging -> sorted on
         # plates) so transitions are smooth Transforms rather than re-creates.
-        n_coarse, n_mid, n_fine = 8, 22, 65
+        n_coarse, n_mid, n_fine = 18, 55, 160
         items = (
             [("coarse", COARSE_R, COARSE)] * n_coarse
             + [("mid", MID_R, MID)] * n_mid

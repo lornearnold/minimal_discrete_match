@@ -2,32 +2,50 @@
 
 Use this file to capture suggested changes for each Manim scene. Add bullets under the relevant scene.
 
-## pile_to_gsd.py — `PileToGSD`
-
-- LEFT SIDE: 
-  - the particles should be spaced to not overlap and only have a few particles of each size.
-  - when the sieves disappear and more particles are added, use the whole left half of the
-
-- RIGHT SIDE:
-    - the bars representing the 3 sieves should not smooth out
-    - more and more bars should be added to better approximate the curve.
-    - the bars' colors should transition from green to blue to red 
-    - go from 3 to 15 sieves
-    
-- "size" could be replaced with something else to not confuse with each particle size
-
 ## sieve_stack.py — `SieveStack`
 
--
+- start out with many more particles
 
 ## continuum_reveal.py — `ContinuumReveal`
 
-- I don't think this scene is working for me. Maybe it should come first or something... I'm not sure. the point was to make it clear why we show these smooth grain size distribution curves even though in the video we only have three sizes, but it doesn't really do that job. I can't quite describe what would be needed to do it better, though.
+- rename to "DefiningG"
+
+## defining_s.py - `DefiningS`
+
+Show subsets for about one second (still with many particles)2 that have different total numbers of particles, but the same GSD. Show an integer for each size in each subset that is not expected to be a minimum. Make the integers large. and feel free to crowd the number of particles in each range to illustrate that there are a lot.
+
+In the very last frame, show only one particle in each size range, with a big question mark over the top, indicating that we're looking for the Minimal Discrete Match, but we don't know exactly what it wil be
 
 ## mass ratio
 
+Change the mass representation from several particles to an amorphous blob with "M_x" inscribed.
+
 ## volume ratio
 
-# Script
+## quantity ratio
 
-When faced with a soil mechanics problem, we may need to simulate the soil itself. The problem with this is that simulating every single particle is very difficult, and we can't individually measure all the particles. To help with this, we can use sieves to find the weight of all the grains within a certain diameter, which we convert into a set of ratios, or "G". With enough sieves, you can achieve a smooth curve, but for this video we will only be using three. There are many sets of particles (or "S") that satisfy "G," but we are interested in finding the one with the least particles.
+Take the illustrations of mass ratio and volume ratio and show them being multiplied (graphic x graphic) and equaling a vector that's labeled "Quantity Ratio".
+
+The quantity ratio vector should have 1 in the first entry and then "?.?" in the other entries, indicating that except for the largest size, other quantities are not guaranteed to be integers.
+
+## rounding approach
+
+Take the numbers from the MDM storyboard sketch and show a discrete match with rounded integers, and then also show that there's error between the target GSD and the actual GSD.
+
+## reducing error
+
+Show the sequence of increasing the total number of particles and reducing the error to at least 3 iterations, with the error going down with each iteration.
+
+## spanned integer approach
+
+Go back to the quantity ratios and show that if the largest and smallest size within each range is considered, there are two quantity ratios. Using the example numbers in the MDM storyboard sketch, there is an integer spanned within each size range. show a new particle at an intermediate size representing the match to that spanned integer.
+
+## spanned integer error
+
+Show a grain size distribution with a perfect match with the spanned integer approach and draw a box around it, labeling it "Minimial Discrete Match"
+
+# Verification
+
+Show a version of the comparison of MDM-predicted sample sizes for scaled GSDs in Z study from the minimial packing manuscript.
+
+

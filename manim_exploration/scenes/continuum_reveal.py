@@ -125,7 +125,7 @@ def _generate_batch(
     return batch
 
 
-class ContinuumReveal(Scene):
+class DefiningG(Scene):
     def construct(self):
         rng = np.random.default_rng(17)
 
@@ -187,3 +187,7 @@ class ContinuumReveal(Scene):
         self.play(Write(caption), run_time=1.2)
 
         self.wait(2.0)
+
+
+# Backwards-compat alias.
+ContinuumReveal = DefiningG

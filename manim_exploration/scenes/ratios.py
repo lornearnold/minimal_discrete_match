@@ -15,6 +15,7 @@ so this scene matches the paper.
 
 from __future__ import annotations
 
+import numpy as np
 from manim import (
     DOWN,
     LEFT,
@@ -26,11 +27,14 @@ from manim import (
     FadeIn,
     Line,
     MathTex,
+    Polygon,
     Scene,
     Text,
     VGroup,
     Write,
     config,
+    interpolate_color,
+    WHITE,
 )
 
 from _common import (
@@ -77,6 +81,34 @@ def _slash(height: float = 0.9) -> Line:
     )
 
 
+def mass_blob(
+    radius: float,
+    color,
+    label: str,
+    seed: int = 0,
+    n_pts: int = 28,
+    jitter: float = 0.18,
+) -> VGroup:
+    """An amorphous blob (irregular polygon) with a math label inscribed."""
+    rng = np.random.default_rng(seed)
+    pts = []
+    for k in range(n_pts):
+        theta = 2 * np.pi * k / n_pts
+        r = radius * (1.0 + rng.uniform(-jitter, jitter))
+        pts.append([r * np.cos(theta), r * np.sin(theta), 0.0])
+    fill = interpolate_color(color, WHITE, 0.55)
+    blob = Polygon(
+        *pts,
+        color=color,
+        fill_color=fill,
+        fill_opacity=1.0,
+        stroke_width=2.0,
+    )
+    text = MathTex(label, color=color).scale(0.9 * radius / 0.6)
+    text.move_to(blob.get_center())
+    return VGroup(blob, text)
+
+
 def _bracketed(rows: VGroup, center_x: float) -> VGroup:
     """Wrap a vertical stack of expressions in matching left/right braces."""
     rows.move_to([center_x, 0, 0])
@@ -89,17 +121,16 @@ class MassRatios(Scene):
     def construct(self):
         title = Text("Mass Ratios", font_size=30, color=FOREGROUND).to_edge(UP, buff=0.4)
 
-        # Numerator piles: each tier's full retained pile.
+        # Numerator: an amorphous blob labeled with the tier's mass M_i.
+        # Denominator: the coarse blob M_1 on every row.
+        blob_r_coarse, blob_r_mid, blob_r_fine = 0.85, 0.65, 0.45
         numerators = [
-            particle_cluster(N_COARSE, COARSE_R, COARSE, bbox=(1.5, 0.8), seed=1),
-            particle_cluster(N_MID, MID_R, MID, bbox=(1.5, 0.8), seed=2),
-            particle_cluster(N_FINE, FINE_R, FINE, bbox=(1.5, 0.8), seed=3),
+            mass_blob(blob_r_coarse, COARSE, r"M_1", seed=1),
+            mass_blob(blob_r_mid, MID, r"M_2", seed=2),
+            mass_blob(blob_r_fine, FINE, r"M_3", seed=3),
         ]
-        # Denominators: the coarse pile, repeated on every row (different
-        # seeds so the three copies don't look identical).
         denominators = [
-            particle_cluster(N_COARSE, COARSE_R, COARSE, bbox=(1.5, 0.8), seed=s)
-            for s in (11, 12, 13)
+            mass_blob(blob_r_coarse, COARSE, r"M_1", seed=s) for s in (11, 12, 13)
         ]
 
         rows = VGroup()
