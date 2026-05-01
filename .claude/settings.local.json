@@ -3,7 +3,8 @@
     "allow": [
       "Bash(uv run python -c ' *)",
       "Bash(timeout 90 uv run manim -ql --disable_caching scenes/quantity_ratio.py QuantityRatio)",
-      "Bash(uv run *)"
+      "Bash(uv run *)",
+      "Bash(ffprobe *)"
     ]
   }
 }

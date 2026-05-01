@@ -21,13 +21,16 @@ from __future__ import annotations
 
 import numpy as np
 from manim import (
+    WHITE,
     Create,
+    Dot,
     FadeIn,
     FadeOut,
     Scene,
     Text,
     UP,
     VGroup,
+    VMobject,
     Write,
     config,
 )
@@ -41,6 +44,7 @@ from _common import (
     build_gsd_bars,
     continuum_color,
     make_particle,
+    target_func,
     y_to_radius,
 )
 
@@ -129,30 +133,44 @@ class DefiningG(Scene):
     def construct(self):
         rng = np.random.default_rng(17)
 
-        # ---- Reproduce PileToGSD's end state exactly. ----
-        # Use the same RNG seed so the piles render in the same positions.
-        init_rng = np.random.default_rng(13)
-        coarse_pile, mid_pile, fine_pile = build_piles(init_rng)
+        skip_setup = getattr(self, "_skip_continuum_setup", False)
 
-        datums = build_datums()
-        axes, x_label, y_label = build_axes_and_labels()
-        bars = build_gsd_bars([X_LEFT, *SIEVE_XS_3], axes)
+        if skip_setup:
+            # Reuse axes/bars stashed by PileToGSD; obstacles are inferred
+            # from whatever circular particles are already on screen.
+            axes = self.axes
+            bars = self.bars
+            datums = getattr(self, "datums", VGroup())
+            obstacles: list[tuple[np.ndarray, float]] = []
+            for m in self.mobjects:
+                # Picks up Circle particles regardless of which scene placed them.
+                if hasattr(m, "radius") and m.get_center()[0] < 0:
+                    obstacles.append((m.get_center(), float(m.radius)))
+        else:
+            # ---- Reproduce PileToGSD's end state exactly. ----
+            # Use the same RNG seed so the piles render in the same positions.
+            init_rng = np.random.default_rng(13)
+            coarse_pile, mid_pile, fine_pile = build_piles(init_rng)
 
-        self.add(
-            datums, coarse_pile, mid_pile, fine_pile,
-            axes, x_label, y_label, bars,
-        )
-        self.wait(0.7)
+            datums = build_datums()
+            axes, x_label, y_label = build_axes_and_labels()
+            bars = build_gsd_bars([X_LEFT, *SIEVE_XS_3], axes)
 
-        # ---- Existing pile particles act as fixed obstacles. ----
-        obstacles: list[tuple[np.ndarray, float]] = []
-        for pile, r in (
-            (coarse_pile, COARSE_R),
-            (mid_pile, MID_R),
-            (fine_pile, FINE_R),
-        ):
-            for p in pile:
-                obstacles.append((p.get_center(), r))
+            self.add(
+                datums, coarse_pile, mid_pile, fine_pile,
+                axes, x_label, y_label, bars,
+            )
+            self.wait(0.7)
+
+            # ---- Existing pile particles act as fixed obstacles. ----
+            obstacles = []
+            for pile, r in (
+                (coarse_pile, COARSE_R),
+                (mid_pile, MID_R),
+                (fine_pile, FINE_R),
+            ):
+                for p in pile:
+                    obstacles.append((p.get_center(), r))
 
         # ---- Refinement schedule: (n_sieves, n_new_particles). ----
         steps = [(5, 30), (9, 50), (15, 80)]
@@ -173,6 +191,9 @@ class DefiningG(Scene):
             ]
             if first_step:
                 anims.append(FadeOut(datums))
+                leftover_note = getattr(self, "_note_mob", None)
+                if leftover_note is not None:
+                    anims.append(FadeOut(leftover_note))
                 first_step = False
 
             self.play(*anims, run_time=1.6)
@@ -186,7 +207,29 @@ class DefiningG(Scene):
         ).to_edge(UP, buff=0.35)
         self.play(Write(caption), run_time=1.2)
 
-        self.wait(2.0)
+        # ---- Draw G: the smooth target curve over the bar tops. ----
+        final_n_sieves = steps[-1][0]
+        final_edges = list(np.linspace(X_LEFT, SIEVE_XS_3[-1], final_n_sieves + 1))
+        xs_dense = np.linspace(final_edges[0], final_edges[-1], 120)
+        curve_pts = [axes.c2p(x, target_func(x)) for x in xs_dense]
+        g_curve = VMobject(stroke_color=WHITE, stroke_width=4)
+        g_curve.set_points_smoothly(curve_pts)
+
+        bar_top_dots = VGroup(
+            *[
+                Dot(axes.c2p(x, target_func(x)), color=WHITE, radius=0.06)
+                for x in final_edges[1:]
+            ]
+        )
+
+        g_label = Text("G", font_size=64, color=WHITE).move_to(
+            axes.c2p(final_edges[-1] - 0.25, target_func(final_edges[-1]) + 0.55)
+        )
+
+        self.play(Create(g_curve), FadeIn(bar_top_dots), run_time=1.5)
+        self.play(Write(g_label), run_time=0.7)
+
+        self.wait(2.5)
 
 
 # Backwards-compat alias.

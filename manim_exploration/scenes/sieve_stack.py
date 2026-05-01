@@ -11,16 +11,24 @@ Story beats:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 from manim import (
     DOWN,
+    LEFT,
+    RIGHT,
     UP,
     FadeIn,
+    FadeOut,
+    ImageMobject,
     Scene,
     VGroup,
     config,
     rate_functions,
 )
+
+from manim import DashedLine, Transform
 
 from _common import (
     BACKGROUND,
@@ -29,6 +37,7 @@ from _common import (
     COARSE_R,
     FINE,
     FINE_R,
+    FOREGROUND,
     MID,
     MID_OPENING,
     MID_R,
@@ -75,9 +84,24 @@ class SieveStack(Scene):
             p.tier = tier  # used by the fall step to route to a sieve
             cloud.add(p)
 
-        # ---- Beat 0: the raw sample.
-        self.play(FadeIn(cloud), run_time=1.2)
-        self.wait(1.0)
+        # ---- Beat 0: zoomed dirt photo pans, then particles materialize over
+        # it before the photo fades to black, leaving the abstract cloud.
+        dirt_path = Path(__file__).resolve().parent.parent / "dirt_1.jpg"
+        dirt = ImageMobject(str(dirt_path))
+        # Scale so the image overflows the frame (zoomed-in feel) and offset
+        # so we have room to pan back across.
+        dirt.height = config.frame_height * 1.6
+        dirt.shift(LEFT * 1.6 + DOWN * 0.6)
+        dirt.set_z_index(-10)
+
+        self.add(dirt)
+        self.play(
+            dirt.animate.shift(RIGHT * 3.2 + UP * 1.2),
+            run_time=4.0,
+            rate_func=rate_functions.linear,
+        )
+        self.play(FadeIn(cloud), run_time=2.0)
+        self.play(FadeOut(dirt), run_time=1.5)
 
         # ---- Beat 1: condense the cloud above where the sieves will appear,
         # while the sieve stack fades in from below.
@@ -146,4 +170,87 @@ class SieveStack(Scene):
             )
 
         self.play(*anims)
-        self.wait(1.5)
+        self.wait(0.3)
+
+        # Stash for the bridge transition into PileToGSD.
+        self.cloud = cloud
+        self.plates = plates
+
+
+def transition_to_piles(scene, sieve: "SieveStack") -> None:
+    """Slide the sieved particles left into pile bands and morph each sieve's
+    front edge into the dashed datum line that divides the bands. The rest of
+    each sieve (mesh + other borders) fades out.
+
+    Leaves the scene in the start-state PileToGSD expects (piles + datums on
+    the left half), so PileToGSD can skip its own setup and go straight to
+    drawing the right-side bars.
+    """
+    # Local import to avoid a cycle if PileToGSD is rendered standalone.
+    from pile_to_gsd import (
+        COARSE_BAND,
+        DATUM_X,
+        DATUM_YS,
+        FINE_BAND,
+        MID_BAND,
+        PILE_X,
+    )
+
+    rng = np.random.default_rng(101)
+    band_for_tier = {
+        "coarse": COARSE_BAND,
+        "mid": MID_BAND,
+        "fine": FINE_BAND,
+    }
+    radius_for_tier = {"coarse": COARSE_R, "mid": MID_R, "fine": FINE_R}
+
+    move_anims = []
+    for p in sieve.cloud:
+        band = band_for_tier[p.tier]
+        r = radius_for_tier[p.tier]
+        x = rng.uniform(PILE_X[0] + r, PILE_X[1] - r)
+        y = rng.uniform(band[0] + r, band[1] - r)
+        move_anims.append(p.animate.move_to([x, y, 0]))
+
+    # Three sieve front edges → three of the four datum lines (skip the
+    # topmost; that one fades in fresh).
+    target_datum_ys = [DATUM_YS[1], DATUM_YS[2], DATUM_YS[3]]
+    edge_morph_anims = []
+    other_fade_anims = []
+    for plate, target_y in zip(sieve.plates, target_datum_ys):
+        border, mesh = plate
+        front_edge = border[0]
+        target_line = DashedLine(
+            start=[DATUM_X[0], target_y, 0],
+            end=[DATUM_X[1], target_y, 0],
+            color=FOREGROUND,
+            stroke_width=1.5,
+            dash_length=0.12,
+        )
+        edge_morph_anims.append(Transform(front_edge, target_line))
+        other_fade_anims.append(FadeOut(mesh))
+        other_fade_anims.append(FadeOut(border[1]))
+        other_fade_anims.append(FadeOut(border[2]))
+        other_fade_anims.append(FadeOut(border[3]))
+
+    top_datum = DashedLine(
+        start=[DATUM_X[0], DATUM_YS[0], 0],
+        end=[DATUM_X[1], DATUM_YS[0], 0],
+        color=FOREGROUND,
+        stroke_width=1.5,
+        dash_length=0.12,
+    )
+
+    scene.play(
+        *move_anims,
+        *edge_morph_anims,
+        *other_fade_anims,
+        FadeIn(top_datum),
+        run_time=1.6,
+    )
+
+    # Expose the datum-like mobjects so the next scene can fade them out.
+    scene.datums = VGroup(
+        top_datum,
+        *(plate[0][0] for plate in sieve.plates),  # transformed front edges
+    )

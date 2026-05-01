@@ -29,7 +29,7 @@ from manim import (
     Dot,
     FadeIn,
     Line,
-    Rectangle,
+    MathTex,
     Scene,
     Square,
     Text,
@@ -131,16 +131,33 @@ class Verification(Scene):
             },
         ).shift(DOWN * 0.3 + LEFT * 1.3)
 
-        x_label = Text(
-            "log10  N_sim  (MDM predicted)",
-            font_size=18,
+        x_label = MathTex(
+            r"\log_{10} N_{\mathrm{sim}}\ \text{(MDM predicted)}",
             color=FOREGROUND,
-        ).next_to(axes, DOWN, buff=0.25)
+        ).scale(0.6).next_to(axes, DOWN, buff=0.45)
         y_label = (
-            Text("log10  N_sim  (reported)", font_size=18, color=FOREGROUND)
+            MathTex(
+                r"\log_{10} N_{\mathrm{sim}}\ \text{(reported)}",
+                color=FOREGROUND,
+            )
+            .scale(0.6)
             .rotate(np.pi / 2)
-            .next_to(axes, LEFT, buff=0.25)
+            .next_to(axes, LEFT, buff=0.45)
         )
+
+        # Tick labels (powers of 10) along both axes.
+        tick_labels = VGroup()
+        for v in range(3, 10):
+            tick_labels.add(
+                MathTex(f"10^{{{v}}}", color=FOREGROUND).scale(0.5).next_to(
+                    axes.c2p(v, 3), DOWN, buff=0.12
+                )
+            )
+            tick_labels.add(
+                MathTex(f"10^{{{v}}}", color=FOREGROUND).scale(0.5).next_to(
+                    axes.c2p(3, v), LEFT, buff=0.12
+                )
+            )
 
         # y=x diagonal line.
         diag = Line(
@@ -163,62 +180,36 @@ class Verification(Scene):
             pos = axes.c2p(np.log10(n_pred), np.log10(n_pred))
             unscaled_markers.add(_marker(1, D_COLORS[d], pos))
 
-        # ---- Annotations / boxes. ----
-        scaled_box = Rectangle(
-            width=2.4, height=2.4,
-            color=FOREGROUND,
-            stroke_width=1.5,
-        ).move_to(axes.c2p(np.log10(2e5), np.log10(2e5)))
-        scaled_caption = Text(
-            "Z-S (2025)\nscaled DEM data",
-            font_size=15,
-            color=FOREGROUND,
-        ).next_to(scaled_box, DOWN, buff=0.05)
-
-        unscaled_box = Rectangle(
-            width=2.0, height=2.0,
-            color=FOREGROUND,
-            stroke_width=1.5,
-        ).move_to(axes.c2p(np.log10(2e8), np.log10(2e8)))
+        # ---- Label near the unscaled cluster. ----
         unscaled_caption = Text(
-            "MDM predictions for\nunscaled Athabasca\nsand DEM models",
-            font_size=15,
+            "what it would take to\nmodel every grain",
+            font_size=26,
             color=FOREGROUND,
-        ).next_to(unscaled_box, UP, buff=0.05)
+        ).move_to(axes.c2p(np.log10(2e8), np.log10(2e8))).shift(UP * 0.5 + LEFT * 1.4)
 
-        # ---- Legend (right side). ----
-        sf_legend = VGroup(
-            Text("Scale Factor", font_size=16, color=FOREGROUND),
-            *[
-                VGroup(
-                    _marker(sf, FOREGROUND, [0, 0, 0]),
-                    Text(f"SF = {sf}" if sf != 1 else "Unscaled",
-                         font_size=14, color=FOREGROUND),
-                ).arrange(RIGHT, buff=0.15)
-                for sf in (1, 5, 10, 15, 20)
-            ],
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.12)
-
-        d_legend = VGroup(
-            Text("Sample D (mm)", font_size=16, color=FOREGROUND),
-            *[
-                VGroup(
-                    Dot(color=D_COLORS[d], radius=0.10),
-                    Text(f"D = {d}", font_size=14, color=FOREGROUND),
-                ).arrange(RIGHT, buff=0.15)
-                for d in (50, 70, 105, 175)
-            ],
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.12)
-
-        legends = VGroup(sf_legend, d_legend).arrange(DOWN, aligned_edge=LEFT, buff=0.4)
-        legends.next_to(axes, RIGHT, buff=0.3).align_to(axes, UP)
+        # ---- Citation taking most of the space to the right of the chart. ----
+        citation = VGroup(
+            Text("Arnold & Arnold (2026)", font_size=26, color=FOREGROUND),
+            Text(
+                "Minimal Discrete Matches\nfor Target Grain Size\nDistributions",
+                font_size=22,
+                color=FOREGROUND,
+            ),
+            Text(
+                "Proc. 21st ICSMGE, Vienna",
+                font_size=20,
+                color=FOREGROUND,
+            ),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.3)
+        citation.next_to(axes, RIGHT, buff=0.6).align_to(axes, UP).shift(DOWN * 0.5)
 
         self.play(Write(title), Write(sub), run_time=0.7)
-        self.play(Create(axes), Write(x_label), Write(y_label), run_time=1.0)
+        self.play(
+            Create(axes), Write(x_label), Write(y_label), FadeIn(tick_labels),
+            run_time=1.2,
+        )
         self.play(Create(diag), run_time=0.5)
-        self.play(FadeIn(legends), run_time=0.7)
-        self.play(FadeIn(scaled_markers, lag_ratio=0.05), run_time=1.2)
-        self.play(FadeIn(scaled_box), Write(scaled_caption), run_time=0.8)
-        self.play(FadeIn(unscaled_markers, lag_ratio=0.1), run_time=1.0)
-        self.play(FadeIn(unscaled_box), Write(unscaled_caption), run_time=0.8)
-        self.wait(2.0)
+        self.play(FadeIn(scaled_markers, lag_ratio=0.05), run_time=1.5)
+        self.play(FadeIn(unscaled_markers, lag_ratio=0.1), Write(unscaled_caption), run_time=1.2)
+        self.play(FadeIn(citation), run_time=0.7)
+        self.wait(11.3)

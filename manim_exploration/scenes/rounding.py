@@ -22,21 +22,27 @@ from manim import (
     LEFT,
     RIGHT,
     UP,
+    WHITE,
+    Arrow,
     Axes,
     Brace,
     DashedLine,
     Dot,
     FadeIn,
     FadeOut,
+    GrowArrow,
     MathTex,
     Polygon,
+    Rectangle,
     Scene,
     Text,
+    Transform,
     VGroup,
     VMobject,
     Write,
     config,
 )
+from manim.utils.color import GREEN, RED
 
 from _common import (
     BACKGROUND,
@@ -64,11 +70,24 @@ SIZES = np.array([0.5, 1.0, 2.0])  # x_1 (fine), x_2 (mid), x_3 (coarse)
 PER_PARTICLE_MASS = SIZES ** 3
 TIER_COLORS = [FINE, MID, COARSE]
 
-# Layout regions.
-LEFT_X = -5.5  # center of pile column
-DATUM_X = (-6.6, -3.6)
-ROW_YS = (1.8, 0.0, -1.8)  # coarse, mid, fine (top to bottom matches storyboard)
+# Layout regions (q_vec → arrow → pile → chart → error_bar).
+QVEC_X = -5.8
+ARROW_X = -4.3
+LEFT_X = -2.8  # center of integer pile column
+DATUM_X = (-3.9, -0.9)
+NUM_LABEL_X = -1.2
+CHART_X = 3.5
+ERR_BAR_X = 6.5
+ROW_YS = (1.8, 0.0, -1.8)  # coarse, mid, fine (top to bottom)
 PILE_BAND_HEIGHT = 1.0
+
+# Error-bar geometry.
+ERR_BAR_BOTTOM_Y = -1.8
+ERR_BAR_HEIGHT = 3.4
+ERR_BAR_WIDTH = 0.3
+TOLERANCE_FRAC = 0.20  # fraction of full bar height
+ERR_HIGH_COLOR = RED
+ERR_OK_COLOR = GREEN
 
 
 def _round_match(scale: int) -> np.ndarray:
@@ -93,6 +112,18 @@ def _cum_passing(counts: np.ndarray) -> np.ndarray:
 # Target curve uses the unrounded quantity ratio.
 TARGET_PP = _cum_passing(QUANTITY_RATIO)
 SIEVE_XS = np.array([0.0, 0.5, 1.0, 2.0])  # pan, x_1, x_2, x_3 (linear axis)
+
+# Hand-tuned realized cumulative-passing values per iteration. These drive
+# the chart's realized curve, dots, and error band so the visualization
+# matches the MDM_storyboard error sketches (rather than the strictly
+# computed _cum_passing, which would always pin the red dot at 100%).
+# Order: [pan=0, fine_dot, mid_dot, coarse_dot]. Values normalized so the
+# target plateau = 1.0.
+ITER_PP = {
+    1: np.array([0.0, 0.05, 0.58, 0.80]),  # red below, blue above, green below
+    2: np.array([0.0, 0.08, 0.50, 0.88]),  # same above/below by color
+    3: np.array([0.0, 0.11, 0.46, 0.99]),  # all dots within 2% of target
+}
 
 
 def _build_axes() -> Axes:
@@ -128,13 +159,14 @@ def _smooth_curve(axes: Axes, target_pp: np.ndarray) -> VMobject:
 
 
 def _stair_curve(axes: Axes, pp: np.ndarray, color, dashed: bool = False) -> VMobject:
-    """Realized cumulative curve: piecewise-linear through the sieve points."""
+    """Realized cumulative curve: smooth (not stair) line through the sieve
+    dots, so the dots read as samples on a continuous mass-distribution."""
     pts = [axes.c2p(x, y) for x, y in zip(SIEVE_XS, pp)]
     curve = VMobject(
         stroke_color=color,
         stroke_width=3,
     )
-    curve.set_points_as_corners(pts)
+    curve.set_points_smoothly(pts)
     return curve
 
 
@@ -182,10 +214,10 @@ def _piles_with_counts(counts: np.ndarray, rng: np.random.Generator) -> VGroup:
     for n, r, color, y in specs:
         band = (y - PILE_BAND_HEIGHT / 2, y + PILE_BAND_HEIGHT / 2)
         pile = scatter_in_band(
-            n, r, color, band, (LEFT_X - 1.4, LEFT_X + 0.6), rng,
+            n, r, color, band, (LEFT_X - 1.1, LEFT_X + 0.9), rng,
         )
-        label = Text(str(n), font_size=72, color=color).move_to(
-            [LEFT_X + 1.6, y, 0]
+        label = Text(str(n), font_size=60, color=color).move_to(
+            [NUM_LABEL_X, y, 0]
         )
         rows.add(VGroup(pile, label))
     return rows
@@ -211,20 +243,39 @@ def _datums() -> VGroup:
 
 
 def _quantity_ratio_vector() -> VGroup:
-    one = MathTex("1", color=COARSE)
-    mid = MathTex("4.6", color=MID)
-    fine = MathTex("12.1", color=FINE)
-    stack = VGroup(one, mid, fine).arrange(DOWN, buff=0.55).move_to([5.0, 0, 0])
-    bracket = VGroup(Brace(stack, LEFT), Brace(stack, RIGHT))
-    title = Text("Quantity ratios", font_size=22, color=FOREGROUND).next_to(
-        stack, UP, buff=0.3
+    coarse_lbl = MathTex("1", color=COARSE).scale(1.4).move_to([QVEC_X, ROW_YS[0], 0])
+    mid_lbl = MathTex("4.6", color=MID).scale(1.4).move_to([QVEC_X, ROW_YS[1], 0])
+    fine_lbl = MathTex("12.1", color=FINE).scale(1.4).move_to([QVEC_X, ROW_YS[2], 0])
+    stack = VGroup(coarse_lbl, mid_lbl, fine_lbl)
+    anchor = Rectangle(
+        width=stack.width + 0.3,
+        height=ROW_YS[0] - ROW_YS[-1] + 0.4,
+        stroke_opacity=0,
+        fill_opacity=0,
+    ).move_to([QVEC_X, 0, 0])
+    bracket = VGroup(Brace(anchor, LEFT), Brace(anchor, RIGHT))
+    return VGroup(bracket, stack)
+
+
+def _rounded_arrow() -> VGroup:
+    arrow = Arrow(
+        start=[ARROW_X - 0.6, 0, 0],
+        end=[ARROW_X + 0.6, 0, 0],
+        color=FOREGROUND,
+        stroke_width=4,
+        max_tip_length_to_length_ratio=0.25,
+        buff=0,
     )
-    return VGroup(bracket, stack, title)
+    label = Text("rounded", font_size=20, color=FOREGROUND).next_to(arrow, UP, buff=0.1)
+    return VGroup(arrow, label)
 
 
-def _build_chart(counts: np.ndarray) -> VGroup:
-    axes = _build_axes().move_to([0.5, -0.2, 0])
-    realized_pp = _cum_passing(counts)
+def _build_chart(counts: np.ndarray, scale: int | None = None) -> VGroup:
+    """Build the cumulative chart. If `scale` is provided, the realized curve
+    + dots + error band use the hand-tuned `ITER_PP[scale]` values; otherwise
+    they're computed from `counts` via `_cum_passing`."""
+    axes = _build_axes().move_to([CHART_X, -0.2, 0])
+    realized_pp = ITER_PP[scale] if scale in ITER_PP else _cum_passing(counts)
     target = _smooth_curve(axes, TARGET_PP)
     realized = _stair_curve(axes, realized_pp, FOREGROUND)
     realized.set_stroke(width=3)
@@ -235,51 +286,183 @@ def _build_chart(counts: np.ndarray) -> VGroup:
     return VGroup(axes, band, target, realized, dots, x_lbl, y_lbl)
 
 
+def _error_magnitude_from_pp(pp: np.ndarray) -> float:
+    """Sum of |realized - target| at the sieve points (excluding endpoints)."""
+    return float(np.sum(np.abs(pp[1:-1] - TARGET_PP[1:-1])) + abs(pp[-1] - TARGET_PP[-1]))
+
+
+# Precompute per-iteration error so the bar can scale to iter-1 = full height.
+_ERRORS = [_error_magnitude_from_pp(ITER_PP[s]) for s in SCALES]
+_ERR_REF = max(_ERRORS) if _ERRORS else 1.0
+ERR_FRACS = [e / _ERR_REF for e in _ERRORS]
+
+
+def _err_bar(frac: float) -> VGroup:
+    """One-bar bar chart at ERR_BAR_X with height proportional to `frac`.
+    Color is GREEN if frac is below the tolerance line, else RED."""
+    bar_h = max(0.05, frac * ERR_BAR_HEIGHT)
+    color = ERR_OK_COLOR if frac < TOLERANCE_FRAC else ERR_HIGH_COLOR
+    bar = Rectangle(
+        width=ERR_BAR_WIDTH,
+        height=bar_h,
+        color=color,
+        fill_color=color,
+        fill_opacity=0.7,
+        stroke_width=2,
+    )
+    bar.move_to([ERR_BAR_X, ERR_BAR_BOTTOM_Y + bar_h / 2, 0])
+    return VGroup(bar)
+
+
+def _err_bar_frame() -> VGroup:
+    """Static parts of the error-bar chart: baseline, tolerance line, label."""
+    baseline = DashedLine(
+        start=[ERR_BAR_X - ERR_BAR_WIDTH * 1.5, ERR_BAR_BOTTOM_Y, 0],
+        end=[ERR_BAR_X + ERR_BAR_WIDTH * 1.5, ERR_BAR_BOTTOM_Y, 0],
+        color=FOREGROUND,
+        stroke_width=2,
+        dash_length=0.06,
+    )
+    tol = DashedLine(
+        start=[ERR_BAR_X - ERR_BAR_WIDTH * 2.0,
+               ERR_BAR_BOTTOM_Y + TOLERANCE_FRAC * ERR_BAR_HEIGHT, 0],
+        end=[ERR_BAR_X + ERR_BAR_WIDTH * 2.0,
+             ERR_BAR_BOTTOM_Y + TOLERANCE_FRAC * ERR_BAR_HEIGHT, 0],
+        color=WHITE,
+        stroke_width=2,
+        dash_length=0.08,
+    )
+    label = Text("error", font_size=16, color=FOREGROUND).move_to(
+        [ERR_BAR_X, ERR_BAR_BOTTOM_Y - 0.3, 0]
+    )
+    return VGroup(baseline, tol, label)
+
+
 class RoundingApproach(Scene):
     def construct(self):
-        title = Text("ERROR", font_size=44, color=FOREGROUND).to_edge(UP, buff=0.3)
+        title = Text("Fixed size iteration", font_size=32, color=FOREGROUND).to_edge(
+            UP, buff=0.3
+        )
 
         rng = np.random.default_rng(7)
         counts = _round_match(SCALES[0])  # [1, 5, 12]
 
+        ratio_vec = _quantity_ratio_vector()
+        arrow = _rounded_arrow()
         datums = _datums()
         piles = _piles_with_counts(counts, rng)
-        chart = _build_chart(counts)
-        ratio_vec = _quantity_ratio_vector()
+        chart = _build_chart(counts, scale=SCALES[0])
+        err_frame = _err_bar_frame()
+        err_bar = _err_bar(ERR_FRACS[0])
 
         self.play(Write(title), run_time=0.5)
-        self.play(FadeIn(datums), run_time=0.4)
-        self.play(FadeIn(piles), run_time=0.7)
-        self.play(FadeIn(ratio_vec), run_time=0.7)
-        self.play(FadeIn(chart), run_time=1.0)
-        self.wait(1.8)
+        self.play(FadeIn(ratio_vec), GrowArrow(arrow[0]), Write(arrow[1]), run_time=0.7)
+        self.play(FadeIn(datums), FadeIn(piles), run_time=0.6)
+        self.play(FadeIn(chart), FadeIn(err_frame), FadeIn(err_bar), run_time=0.9)
+        self.wait(0.5)
 
 
 class ReducingError(Scene):
     def construct(self):
-        title = Text("ERROR", font_size=44, color=FOREGROUND).to_edge(UP, buff=0.3)
+        title = Text("Fixed size iteration", font_size=32, color=FOREGROUND).to_edge(
+            UP, buff=0.3
+        )
 
+        # Seamless mode: QR teaser already left q_vec, arrow + "rounded",
+        # iter-1 pile, and count labels on screen. Add only what's missing.
+        seamless = hasattr(self, "_qr_q_vec")
         datums = _datums()
-        ratio_vec = _quantity_ratio_vector()
+        err_frame = _err_bar_frame()
 
-        self.play(Write(title), run_time=0.5)
-        self.play(FadeIn(datums), FadeIn(ratio_vec), run_time=0.7)
+        if seamless:
+            existing_pile = self._qr_pile
+            existing_labels = self._qr_count_labels
+            qr_title = getattr(self, "_qr_title", None)
+            qr_q_vec = self._qr_q_vec
+            k_label = MathTex("K", color=FOREGROUND).scale(1.0).next_to(
+                qr_q_vec, UP, buff=0.15
+            )
+            fade_extra = [FadeOut(qr_title)] if qr_title is not None else []
+            self.play(
+                Write(title),
+                *fade_extra,
+                FadeIn(datums),
+                FadeIn(err_frame),
+                Write(k_label),
+                run_time=0.7,
+            )
+            self._re_k_label = k_label
+        else:
+            ratio_vec = _quantity_ratio_vector()
+            arrow = _rounded_arrow()
+            self.play(Write(title), run_time=0.5)
+            self.play(
+                FadeIn(datums),
+                FadeIn(ratio_vec),
+                GrowArrow(arrow[0]),
+                Write(arrow[1]),
+                FadeIn(err_frame),
+                run_time=0.7,
+            )
+            existing_pile = None
+            existing_labels = None
 
-        prev = None
+        prev_chart = None
+        on_scene_bar = None
+        prev_pile = existing_pile
+        prev_labels = existing_labels
         rng_seed = 11
-        for scale in SCALES:
+        for i, scale in enumerate(SCALES):
             rng = np.random.default_rng(rng_seed)
             rng_seed += 1
             counts = _round_match(scale)
-            piles = _piles_with_counts(counts, rng)
-            chart = _build_chart(counts)
-            group = VGroup(piles, chart)
+            new_piles_with_labels = _piles_with_counts(counts, rng)
+            # Split into pile particles and integer labels.
+            new_pile = VGroup(*[row[0] for row in new_piles_with_labels])
+            new_labels = VGroup(*[row[1] for row in new_piles_with_labels])
+            chart = _build_chart(counts, scale=scale)
+            err_bar = _err_bar(ERR_FRACS[i])
 
-            if prev is None:
-                self.play(FadeIn(group), run_time=0.9)
+            if i == 0:
+                # First iteration: in seamless mode the pile + labels already
+                # exist (iter 1 = same numbers); just add chart + err_bar.
+                if seamless:
+                    self.play(FadeIn(chart), FadeIn(err_bar), run_time=0.7)
+                else:
+                    self.play(
+                        FadeIn(new_pile),
+                        FadeIn(new_labels),
+                        FadeIn(chart),
+                        FadeIn(err_bar),
+                        run_time=0.7,
+                    )
+                    prev_pile = new_pile
+                    prev_labels = new_labels
+                on_scene_bar = err_bar
+                prev_chart = chart
             else:
-                self.play(FadeOut(prev), FadeIn(group), run_time=0.9)
-            self.wait(1.0)
-            prev = group
+                self.play(
+                    FadeOut(prev_pile),
+                    FadeOut(prev_labels),
+                    FadeIn(new_pile),
+                    FadeIn(new_labels),
+                    FadeOut(prev_chart),
+                    FadeIn(chart),
+                    Transform(on_scene_bar, err_bar),
+                    run_time=0.7,
+                )
+                prev_pile = new_pile
+                prev_labels = new_labels
+                prev_chart = chart
+            self.wait(0.4)
 
-        self.wait(1.2)
+        # Stash for SpannedIntegerApproach.
+        self._re_title = title
+        self._re_datums = datums
+        self._re_pile = prev_pile
+        self._re_labels = prev_labels
+        self._re_chart = prev_chart
+        self._re_err_frame = err_frame
+        self._re_err_bar = on_scene_bar
+
+        self.wait(0.5)

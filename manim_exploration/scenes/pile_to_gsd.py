@@ -119,25 +119,35 @@ def build_axes_and_labels():
 
 class PileToGSD(Scene):
     def construct(self):
-        rng = np.random.default_rng(13)
+        # When stitched into FullStory, the prior scene leaves piles + datums
+        # on the canvas already; skip the redundant setup beats.
+        skip_setup = getattr(self, "_skip_pile_setup", False)
 
-        coarse_pile, mid_pile, fine_pile = build_piles(rng)
-        datums = build_datums()
+        if not skip_setup:
+            rng = np.random.default_rng(13)
 
-        self.play(Create(datums), run_time=0.7)
-        self.play(
-            FadeIn(coarse_pile, shift=DOWN * 0.2),
-            FadeIn(mid_pile, shift=DOWN * 0.2),
-            FadeIn(fine_pile, shift=DOWN * 0.2),
-            run_time=1.0,
-        )
-        self.wait(0.3)
+            coarse_pile, mid_pile, fine_pile = build_piles(rng)
+            datums = build_datums()
+
+            self.play(Create(datums), run_time=0.7)
+            self.play(
+                FadeIn(coarse_pile, shift=DOWN * 0.2),
+                FadeIn(mid_pile, shift=DOWN * 0.2),
+                FadeIn(fine_pile, shift=DOWN * 0.2),
+                run_time=1.0,
+            )
+            self.wait(0.3)
 
         axes, x_label, y_label = build_axes_and_labels()
         bars = build_gsd_bars([X_LEFT, *SIEVE_XS_3], axes)
 
         self.play(Create(axes), Write(x_label), Write(y_label), run_time=0.9)
         self.play(*[FadeIn(b) for b in bars], run_time=1.0)
+
+        # Stash for the seamless handoff to ContinuumReveal.
+        self.axes = axes
+        self.bars = bars
+        self._note_mob = None
 
         note = Text(
             "Three sieves give a coarse picture —\n"
@@ -146,5 +156,6 @@ class PileToGSD(Scene):
             color=FOREGROUND,
         ).to_edge(UP, buff=0.35)
         self.play(Write(note), run_time=1.0)
+        self._note_mob = note
 
-        self.wait(1.5)
+        self.wait(2.1)

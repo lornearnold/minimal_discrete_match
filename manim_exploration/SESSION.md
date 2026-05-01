@@ -1,7 +1,5 @@
 # Session recovery — manim_exploration storyboard work
 
-sfsdfasdf
-
 Snapshot of an in-progress session. Hand this file (or its path) to a new
 Claude conversation to pick up the thread.
 
