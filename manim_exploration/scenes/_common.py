@@ -16,15 +16,43 @@ import numpy as np
 from manim import (
     BLACK,
     BLUE,
+    DOWN,
     GREEN,
     RED,
     WHITE,
     Circle,
     Line,
     Polygon,
+    Tex,
     VGroup,
     interpolate_color,
 )
+
+
+def tex_text(text: str, font_size: int = 24, color=WHITE, line_buff: float = 0.15):
+    """Tex-rendered (LaTeX) replacement for manim's Pango-based Text. Better
+    kerning out of the box. Multi-line strings (with `\\n`) become a vertical
+    VGroup of single-line Tex objects, kept centered.
+
+    LaTeX special characters (& _ # %) are escaped automatically.
+    """
+    def _escape(s: str) -> str:
+        return (
+            s.replace("\\", r"\textbackslash{}")
+            .replace("&", r"\&")
+            .replace("_", r"\_")
+            .replace("#", r"\#")
+            .replace("%", r"\%")
+            .replace("—", "---")
+            .replace("–", "--")
+        )
+
+    lines = text.split("\n")
+    if len(lines) == 1:
+        return Tex(_escape(lines[0]), font_size=font_size, color=color)
+    return VGroup(
+        *[Tex(_escape(ln), font_size=font_size, color=color) for ln in lines]
+    ).arrange(DOWN, buff=line_buff)
 
 # ---- Colors -----------------------------------------------------------------
 

@@ -77,7 +77,7 @@ class DefiningS(Scene):
         # ---- Curly braces flanking the per-band number labels. ----
         numbers_x = PILE_X[1] + 1.5
         brace_anchor = Rectangle(
-            width=1.5,
+            width=2.2,
             height=COARSE_BAND[1] - FINE_BAND[0] + 0.6,
             stroke_opacity=0,
             fill_opacity=0,
@@ -85,8 +85,8 @@ class DefiningS(Scene):
         left_brace = Brace(brace_anchor, LEFT)
         right_brace = Brace(brace_anchor, RIGHT)
 
-        # Prominent S, sitting just past the right brace.
-        s_label = Text("S", font_size=110, color=WHITE).move_to([3.4, 0.6, 0])
+        # Prominent S, sitting clear of the right brace + per-band labels.
+        s_label = Text("S", font_size=110, color=WHITE).move_to([4.6, 0.6, 0])
         n_counter = MathTex("N = ?", color=WHITE).scale(1.1).next_to(
             s_label, DOWN, buff=0.35
         )

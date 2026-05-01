@@ -41,6 +41,7 @@ from _common import (
     MID_R,
     make_particle,
     scatter_in_band,
+    tex_text,
 )
 from ratios import mass_blob
 from rounding import (
@@ -70,7 +71,7 @@ def _uniform_bracket(inner: VGroup, center_x: float, brace_height: float) -> VGr
 
 class QuantityRatio(Scene):
     def construct(self):
-        title = Text("Quantity Ratio, K", font_size=30, color=FOREGROUND).to_edge(UP, buff=0.4)
+        title = tex_text("Quantity Ratio, K", font_size=42, color=FOREGROUND).to_edge(UP, buff=0.4)
         self._qr_title = title  # stashed so ReducingError can fade it out
 
         ys = (1.6, 0.0, -1.6)
@@ -126,9 +127,9 @@ class QuantityRatio(Scene):
             [(vol_right_x + q_left_x) / 2, 0, 0]
         )
 
-        q_label = Text(
+        q_label = tex_text(
             "Quantity Ratio",
-            font_size=22,
+            font_size=30,
             color=FOREGROUND,
         ).next_to(q_vec, DOWN, buff=0.3)
 
@@ -137,9 +138,9 @@ class QuantityRatio(Scene):
         self.play(Write(times), FadeIn(vol_vec), run_time=0.9)
         self.play(Write(equals), FadeIn(q_vec), Write(q_label), run_time=1.0)
 
-        caveat = Text(
+        caveat = tex_text(
             "Only the first entry is guaranteed to be an integer.",
-            font_size=22,
+            font_size=30,
             color=FOREGROUND,
         ).to_edge(DOWN, buff=0.4)
         self.play(Write(caveat), run_time=0.9)
@@ -165,6 +166,14 @@ class QuantityRatio(Scene):
             MathTex("4.6", color=MID).scale(1.4).move_to([q_x, ys[1], 0]),
             MathTex("12.1", color=FINE).scale(1.4).move_to([q_x, ys[2], 0]),
         )
+        # Wider braces sized for the numerical values so they don't clip "12.1".
+        wider_anchor = Rectangle(
+            width=q_numbers.width + 0.5,
+            height=brace_height,
+            stroke_opacity=0,
+            fill_opacity=0,
+        ).move_to([q_x, 0, 0])
+        wider_braces = (Brace(wider_anchor, LEFT), Brace(wider_anchor, RIGHT))
 
         self.play(
             FadeOut(mass_rows),
@@ -172,6 +181,8 @@ class QuantityRatio(Scene):
             FadeOut(vol_rows),
             FadeIn(vol_numbers),
             Transform(q_entries, q_numbers),
+            Transform(q_vec[0], wider_braces[0]),
+            Transform(q_vec[2], wider_braces[1]),
             run_time=1.2,
         )
         self.wait(0.7)
@@ -203,7 +214,7 @@ class QuantityRatio(Scene):
             max_tip_length_to_length_ratio=0.25,
             buff=0,
         )
-        rounded_lbl = Text("rounded", font_size=20, color=FOREGROUND).next_to(
+        rounded_lbl = tex_text("rounded", font_size=28, color=FOREGROUND).next_to(
             arrow, UP, buff=0.1
         )
 
@@ -222,9 +233,9 @@ class QuantityRatio(Scene):
             ))
 
         count_labels = VGroup(
-            Text("1", font_size=60, color=COARSE).move_to([NUM_LABEL_X, ROW_YS[0], 0]),
-            Text("5", font_size=60, color=MID).move_to([NUM_LABEL_X, ROW_YS[1], 0]),
-            Text("12", font_size=60, color=FINE).move_to([NUM_LABEL_X, ROW_YS[2], 0]),
+            tex_text("1", font_size=84, color=COARSE).move_to([NUM_LABEL_X, ROW_YS[0], 0]),
+            tex_text("5", font_size=84, color=MID).move_to([NUM_LABEL_X, ROW_YS[1], 0]),
+            tex_text("12", font_size=84, color=FINE).move_to([NUM_LABEL_X, ROW_YS[2], 0]),
         )
 
         self.play(

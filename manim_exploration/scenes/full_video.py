@@ -9,7 +9,7 @@ with:
 
 from __future__ import annotations
 
-from manim import Scene, config
+from manim import FadeOut, Scene, config
 
 from _common import BACKGROUND
 from continuum_reveal import DefiningG
@@ -79,5 +79,10 @@ class FullStory(Scene):
                 )
                 if seamless:
                     continue
-                self.clear()
-                self.wait(0.4)
+                # Fade out current state instead of cutting to black, so the
+                # transition between scenes reads as a soft hand-off.
+                if self.mobjects:
+                    self.play(
+                        *[FadeOut(m) for m in list(self.mobjects)],
+                        run_time=0.35,
+                    )

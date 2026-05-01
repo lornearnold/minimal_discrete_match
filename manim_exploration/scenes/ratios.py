@@ -48,6 +48,7 @@ from _common import (
     MID_R,
     make_particle,
     particle_cluster,
+    tex_text,
 )
 
 config.background_color = BACKGROUND
@@ -161,7 +162,7 @@ class MassRatios(Scene):
     """Pile of tier i ÷ pile of coarse, with the M_i/M_1 vector on the right."""
 
     def construct(self):
-        title = Text("Mass Ratios", font_size=30, color=FOREGROUND).to_edge(UP, buff=0.4)
+        title = tex_text("Mass Ratios", font_size=42, color=FOREGROUND).to_edge(UP, buff=0.4)
 
         # Numerator: a potato blob labeled with the tier's mass M_i.
         # Denominator: the same M_1 potato on every row (identical shape).
@@ -211,7 +212,7 @@ class VolumeRatios(Scene):
     """One coarse particle ÷ one tier-i particle = ζ_i = (x_1/x_i)^3."""
 
     def construct(self):
-        title = Text("Volume Ratios", font_size=30, color=FOREGROUND).to_edge(UP, buff=0.4)
+        title = tex_text("Volume Ratios", font_size=42, color=FOREGROUND).to_edge(UP, buff=0.4)
 
         # Numerator on every row: a single coarse particle.
         # Denominator: a single particle of the row's tier.

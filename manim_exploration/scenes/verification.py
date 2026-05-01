@@ -40,7 +40,7 @@ from manim import (
     rgb_to_color,
 )
 
-from _common import BACKGROUND, COARSE, FINE, FOREGROUND, MID
+from _common import BACKGROUND, FOREGROUND, tex_text
 
 config.background_color = BACKGROUND
 
@@ -106,14 +106,13 @@ D_COLORS = {
 
 class Verification(Scene):
     def construct(self):
-        title = Text(
-            "Verification: predicted vs. reported N_sim",
-            font_size=26,
+        title = MathTex(
+            r"\text{Verification: predicted vs.\ reported } N_{\mathrm{sim}}",
             color=FOREGROUND,
-        ).to_edge(UP, buff=0.3)
-        sub = Text(
+        ).scale(0.9).to_edge(UP, buff=0.3)
+        sub = tex_text(
             "Zeraati-Shamsabadi & Sadrekarimi (2025), Athabasca sand",
-            font_size=18,
+            font_size=26,
             color=FOREGROUND,
         ).next_to(title, DOWN, buff=0.1)
 
@@ -181,23 +180,23 @@ class Verification(Scene):
             unscaled_markers.add(_marker(1, D_COLORS[d], pos))
 
         # ---- Label near the unscaled cluster. ----
-        unscaled_caption = Text(
+        unscaled_caption = tex_text(
             "what it would take to\nmodel every grain",
-            font_size=26,
+            font_size=36,
             color=FOREGROUND,
         ).move_to(axes.c2p(np.log10(2e8), np.log10(2e8))).shift(UP * 0.5 + LEFT * 1.4)
 
         # ---- Citation taking most of the space to the right of the chart. ----
         citation = VGroup(
-            Text("Arnold & Arnold (2026)", font_size=26, color=FOREGROUND),
-            Text(
+            tex_text("Arnold & Arnold (2026)", font_size=36, color=FOREGROUND),
+            tex_text(
                 "Minimal Discrete Matches\nfor Target Grain Size\nDistributions",
-                font_size=22,
+                font_size=30,
                 color=FOREGROUND,
             ),
-            Text(
+            tex_text(
                 "Proc. 21st ICSMGE, Vienna",
-                font_size=20,
+                font_size=28,
                 color=FOREGROUND,
             ),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.3)

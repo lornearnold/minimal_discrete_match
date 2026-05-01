@@ -55,6 +55,7 @@ from _common import (
     FINE_R,
     make_particle,
     scatter_in_band,
+    tex_text,
 )
 
 config.background_color = BACKGROUND
@@ -71,11 +72,11 @@ PER_PARTICLE_MASS = SIZES ** 3
 TIER_COLORS = [FINE, MID, COARSE]
 
 # Layout regions (q_vec → arrow → pile → chart → error_bar).
-QVEC_X = -5.8
-ARROW_X = -4.3
-LEFT_X = -2.8  # center of integer pile column
-DATUM_X = (-3.9, -0.9)
-NUM_LABEL_X = -1.2
+QVEC_X = -5.2
+ARROW_X = -4.0
+LEFT_X = -2.5  # center of integer pile column
+DATUM_X = (-3.6, -0.6)
+NUM_LABEL_X = -0.9
 CHART_X = 3.5
 ERR_BAR_X = 6.5
 ROW_YS = (1.8, 0.0, -1.8)  # coarse, mid, fine (top to bottom)
@@ -216,7 +217,7 @@ def _piles_with_counts(counts: np.ndarray, rng: np.random.Generator) -> VGroup:
         pile = scatter_in_band(
             n, r, color, band, (LEFT_X - 1.1, LEFT_X + 0.9), rng,
         )
-        label = Text(str(n), font_size=60, color=color).move_to(
+        label = tex_text(str(n), font_size=84, color=color).move_to(
             [NUM_LABEL_X, y, 0]
         )
         rows.add(VGroup(pile, label))
@@ -248,7 +249,7 @@ def _quantity_ratio_vector() -> VGroup:
     fine_lbl = MathTex("12.1", color=FINE).scale(1.4).move_to([QVEC_X, ROW_YS[2], 0])
     stack = VGroup(coarse_lbl, mid_lbl, fine_lbl)
     anchor = Rectangle(
-        width=stack.width + 0.3,
+        width=stack.width + 0.5,
         height=ROW_YS[0] - ROW_YS[-1] + 0.4,
         stroke_opacity=0,
         fill_opacity=0,
@@ -266,7 +267,7 @@ def _rounded_arrow() -> VGroup:
         max_tip_length_to_length_ratio=0.25,
         buff=0,
     )
-    label = Text("rounded", font_size=20, color=FOREGROUND).next_to(arrow, UP, buff=0.1)
+    label = tex_text("rounded", font_size=28, color=FOREGROUND).next_to(arrow, UP, buff=0.1)
     return VGroup(arrow, label)
 
 
@@ -281,8 +282,12 @@ def _build_chart(counts: np.ndarray, scale: int | None = None) -> VGroup:
     realized.set_stroke(width=3)
     band = _error_band(axes, TARGET_PP, realized_pp)
     dots = _sieve_dots(axes, realized_pp)
-    x_lbl = Text("size", font_size=18, color=FOREGROUND).next_to(axes, DOWN, buff=0.1)
-    y_lbl = Text("Mass", font_size=18, color=FOREGROUND).next_to(axes, LEFT, buff=0.1).shift(UP * 0.8)
+    x_lbl = tex_text("size", font_size=24, color=FOREGROUND).next_to(axes, DOWN, buff=0.1)
+    # Mass label sits above the y-axis so it doesn't fight with the
+    # spanned-integer column to the chart's left.
+    y_lbl = tex_text("Mass", font_size=24, color=FOREGROUND).next_to(
+        axes.y_axis.get_top(), UP, buff=0.05
+    )
     return VGroup(axes, band, target, realized, dots, x_lbl, y_lbl)
 
 
@@ -332,7 +337,7 @@ def _err_bar_frame() -> VGroup:
         stroke_width=2,
         dash_length=0.08,
     )
-    label = Text("error", font_size=16, color=FOREGROUND).move_to(
+    label = tex_text("error", font_size=22, color=FOREGROUND).move_to(
         [ERR_BAR_X, ERR_BAR_BOTTOM_Y - 0.3, 0]
     )
     return VGroup(baseline, tol, label)
@@ -340,7 +345,7 @@ def _err_bar_frame() -> VGroup:
 
 class RoundingApproach(Scene):
     def construct(self):
-        title = Text("Fixed size iteration", font_size=32, color=FOREGROUND).to_edge(
+        title = tex_text("Fixed size iteration", font_size=44, color=FOREGROUND).to_edge(
             UP, buff=0.3
         )
 
@@ -364,7 +369,7 @@ class RoundingApproach(Scene):
 
 class ReducingError(Scene):
     def construct(self):
-        title = Text("Fixed size iteration", font_size=32, color=FOREGROUND).to_edge(
+        title = tex_text("Fixed size iteration", font_size=44, color=FOREGROUND).to_edge(
             UP, buff=0.3
         )
 

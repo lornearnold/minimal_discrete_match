@@ -77,8 +77,8 @@ def _try_place(
     y: float,
     obstacles: list[tuple[np.ndarray, float]],
     rng: np.random.Generator,
-    tries: int = 50,
-    overlap_tolerance: float = 1.04,
+    tries: int = 120,
+    overlap_tolerance: float = 1.02,
 ) -> np.ndarray | None:
     """Find an x-position in PILE_X for a particle of `radius` at height `y`.
 
@@ -173,7 +173,7 @@ class DefiningG(Scene):
                     obstacles.append((p.get_center(), r))
 
         # ---- Refinement schedule: (n_sieves, n_new_particles). ----
-        steps = [(5, 30), (9, 50), (15, 80)]
+        steps = [(5, 120), (9, 220), (15, 400)]
 
         prev_bars = bars
         first_step = True

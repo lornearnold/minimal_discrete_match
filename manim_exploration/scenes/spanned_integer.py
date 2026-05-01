@@ -59,6 +59,7 @@ from _common import (
     MID_R,
     make_particle,
     scatter_in_band,
+    tex_text,
 )
 from rounding import (
     ARROW_X,
@@ -161,7 +162,7 @@ ERR_FRAC_SPANNED = 0.0
 # Vertical offset of K_+ entries (above each tier row) vs K_- entries (below).
 # Used for both the values inside the combined K_+/K_- bracket AND the
 # particles in the sieve stack, so numbers and particles line up.
-KVEC_Y_OFFSET = 0.30
+KVEC_Y_OFFSET = 0.45
 
 
 def _combined_anchor_geom() -> tuple[float, float]:
@@ -253,9 +254,9 @@ class SpannedIntegerApproach(Scene):
             # De-clutter for the spanned-integer view: drop the arrow,
             # "rounded" label, and per-tier integer labels (those will
             # reappear inside the spanned-integer vector later).
-            new_title = Text(
+            new_title = tex_text(
                 "Spanned-integer approach",
-                font_size=32,
+                font_size=44,
                 color=FOREGROUND,
             ).to_edge(UP, buff=0.3)
             self.play(
@@ -266,9 +267,9 @@ class SpannedIntegerApproach(Scene):
                 run_time=0.6,
             )
         else:
-            title = Text(
+            title = tex_text(
                 "Spanned-integer approach",
-                font_size=32,
+                font_size=44,
                 color=FOREGROUND,
             ).to_edge(UP, buff=0.3)
             rng = np.random.default_rng(7)
@@ -305,8 +306,10 @@ class SpannedIntegerApproach(Scene):
 
         kplus_entries = _kplus_entries(QVEC_X)
         combined_bracket = _combined_bracket(QVEC_X, ref_width=kplus_entries.width)
-        kplus_label = MathTex("K_+", color=FOREGROUND).scale(0.9).next_to(
-            combined_bracket[0], UP, buff=0.15
+        # Place K_+ label to the LEFT of the bracket at the y-level of the
+        # K_+ entries (upper half) so it stays inside the frame.
+        kplus_label = MathTex("K_+", color=FOREGROUND).scale(1.5).move_to(
+            [QVEC_X - 1.3, ROW_YS[1] + KVEC_Y_OFFSET, 0]
         )
 
         axes = chart[0]
@@ -351,8 +354,8 @@ class SpannedIntegerApproach(Scene):
         small_particles = VGroup(small_mid, small_fine)
 
         kminus_entries = _kminus_entries(QVEC_X)
-        kminus_label = MathTex("K_-", color=FOREGROUND).scale(0.9).next_to(
-            combined_bracket[0], DOWN, buff=0.15
+        kminus_label = MathTex("K_-", color=FOREGROUND).scale(1.5).move_to(
+            [QVEC_X - 1.3, ROW_YS[2] - KVEC_Y_OFFSET, 0]
         )
 
         err_bar_kminus = _err_bar(ERR_FRAC_KMINUS)
@@ -393,9 +396,9 @@ class SpannedIntegerError(Scene):
         # static MDM result.
         if not getattr(self, "title_mob", None):
             # Standalone fallback: just label the result.
-            label = Text(
+            label = tex_text(
                 "Minimal Discrete Match",
-                font_size=32,
+                font_size=44,
                 color=COARSE,
             )
             self.play(Write(label), run_time=0.7)
@@ -427,13 +430,13 @@ class SpannedIntegerError(Scene):
 
         # Spanned-integer column between the particle stack and the chart.
         span_x = 0.5
-        span_title = Text("Spanned\nintegers", font_size=18, color=COARSE).move_to(
+        span_title = tex_text("Spanned\nintegers", font_size=24, color=COARSE).move_to(
             [span_x, ROW_YS[0] + 1.0, 0]
         )
         span_labels = VGroup(
-            Text("1", font_size=56, color=COARSE).move_to([span_x, ROW_YS[0], 0]),
-            Text("5", font_size=56, color=MID).move_to([span_x, mid_merged_y, 0]),
-            Text("12", font_size=56, color=FINE).move_to([span_x, fine_merged_y, 0]),
+            tex_text("1", font_size=78, color=COARSE).move_to([span_x, ROW_YS[0], 0]),
+            tex_text("5", font_size=78, color=MID).move_to([span_x, mid_merged_y, 0]),
+            tex_text("12", font_size=78, color=FINE).move_to([span_x, fine_merged_y, 0]),
         )
         span_anchor = Rectangle(
             width=span_labels.width + 0.3,
@@ -475,16 +478,21 @@ class SpannedIntegerError(Scene):
         self.wait(0.6)
 
         # ---- Beat 5: MDM box + label. ----
-        result = VGroup(span_brace, span_labels, large_pile, small_particles)
+        # Box hugs just the merged pile and the spanned-integer column;
+        # avoids stretching across the K-vector or the chart's y-axis.
+        box_left = pile_x - 0.7
+        box_right = span_x + 0.7
+        box_top = ROW_YS[0] + 0.6
+        box_bot = ROW_YS[-1] - 0.6
         box = Rectangle(
-            width=result.width + 0.7,
-            height=result.height + 0.7,
+            width=box_right - box_left,
+            height=box_top - box_bot,
             color=COARSE,
             stroke_width=3,
-        ).move_to(result.get_center())
-        mdm_label = Text(
+        ).move_to([(box_left + box_right) / 2, (box_top + box_bot) / 2, 0])
+        mdm_label = tex_text(
             "Minimal Discrete Match",
-            font_size=28,
+            font_size=38,
             color=COARSE,
         ).next_to(box, DOWN, buff=0.25)
 
