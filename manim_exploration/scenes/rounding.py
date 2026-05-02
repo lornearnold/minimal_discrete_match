@@ -26,6 +26,8 @@ from manim import (
     Arrow,
     Axes,
     Brace,
+    Create,
+    CurvedArrow,
     DashedLine,
     Dot,
     FadeIn,
@@ -74,13 +76,15 @@ TIER_COLORS = [FINE, MID, COARSE]
 # Layout regions (q_vec → arrow → pile → chart → error_bar).
 QVEC_X = -5.2
 ARROW_X = -4.0
-LEFT_X = -2.5  # center of integer pile column
-DATUM_X = (-3.6, -0.6)
-NUM_LABEL_X = -0.9
+LEFT_X = -1.8  # center of integer pile column
+DATUM_X = (-3.6, -0.3)
+NUM_LABEL_X = -3.1  # numbers sit inside the sieve stack, left of particles
+PILE_X_RANGE = (-2.5, -1.1)  # particle scatter range
 CHART_X = 3.5
 ERR_BAR_X = 6.5
 ROW_YS = (1.8, 0.0, -1.8)  # coarse, mid, fine (top to bottom)
 PILE_BAND_HEIGHT = 1.0
+NUM_LABEL_FONT = 70
 
 # Error-bar geometry.
 ERR_BAR_BOTTOM_Y = -1.8
@@ -215,9 +219,9 @@ def _piles_with_counts(counts: np.ndarray, rng: np.random.Generator) -> VGroup:
     for n, r, color, y in specs:
         band = (y - PILE_BAND_HEIGHT / 2, y + PILE_BAND_HEIGHT / 2)
         pile = scatter_in_band(
-            n, r, color, band, (LEFT_X - 1.1, LEFT_X + 0.9), rng,
+            n, r, color, band, PILE_X_RANGE, rng,
         )
-        label = tex_text(str(n), font_size=84, color=color).move_to(
+        label = tex_text(str(n), font_size=NUM_LABEL_FONT, color=color).move_to(
             [NUM_LABEL_X, y, 0]
         )
         rows.add(VGroup(pile, label))
@@ -258,16 +262,31 @@ def _quantity_ratio_vector() -> VGroup:
     return VGroup(bracket, stack)
 
 
+def _times_n_label(scale: int, anchor) -> VGroup:
+    """`x N` label that sits above the 'rounded' arrow label, where N is the
+    current iteration's scale factor."""
+    return tex_text(f"x {scale}", font_size=28, color=FOREGROUND).next_to(
+        anchor, UP, buff=0.15
+    )
+
+
 def _rounded_arrow() -> VGroup:
-    arrow = Arrow(
-        start=[ARROW_X - 0.6, 0, 0],
-        end=[ARROW_X + 0.6, 0, 0],
+    # Curved (concave-down) arrow from above q_vec to above the numbers.
+    # The "rounded" label sits above the arrow.
+    arrow_y = 2.35
+    start = [QVEC_X + 0.9, arrow_y, 0]
+    end = [NUM_LABEL_X - 0.05, arrow_y, 0]
+    arrow = CurvedArrow(
+        start_point=start,
+        end_point=end,
         color=FOREGROUND,
         stroke_width=4,
-        max_tip_length_to_length_ratio=0.25,
-        buff=0,
+        angle=-1.0,
+        tip_length=0.2,
     )
-    label = tex_text("rounded", font_size=28, color=FOREGROUND).next_to(arrow, UP, buff=0.1)
+    label = tex_text("rounded", font_size=28, color=FOREGROUND).move_to(
+        [(start[0] + end[0]) / 2, 3.05, 0]
+    )
     return VGroup(arrow, label)
 
 
@@ -354,6 +373,7 @@ class RoundingApproach(Scene):
 
         ratio_vec = _quantity_ratio_vector()
         arrow = _rounded_arrow()
+        times_n = _times_n_label(SCALES[0], arrow[1])
         datums = _datums()
         piles = _piles_with_counts(counts, rng)
         chart = _build_chart(counts, scale=SCALES[0])
@@ -361,7 +381,13 @@ class RoundingApproach(Scene):
         err_bar = _err_bar(ERR_FRACS[0])
 
         self.play(Write(title), run_time=0.5)
-        self.play(FadeIn(ratio_vec), GrowArrow(arrow[0]), Write(arrow[1]), run_time=0.7)
+        self.play(
+            FadeIn(ratio_vec),
+            Create(arrow[0]),
+            Write(arrow[1]),
+            Write(times_n),
+            run_time=0.7,
+        )
         self.play(FadeIn(datums), FadeIn(piles), run_time=0.6)
         self.play(FadeIn(chart), FadeIn(err_frame), FadeIn(err_bar), run_time=0.9)
         self.wait(0.5)
@@ -384,9 +410,11 @@ class ReducingError(Scene):
             existing_labels = self._qr_count_labels
             qr_title = getattr(self, "_qr_title", None)
             qr_q_vec = self._qr_q_vec
+            qr_rounded_lbl = self._qr_rounded_lbl
             k_label = MathTex("K", color=FOREGROUND).scale(1.0).next_to(
                 qr_q_vec, UP, buff=0.15
             )
+            times_n = _times_n_label(SCALES[0], qr_rounded_lbl)
             fade_extra = [FadeOut(qr_title)] if qr_title is not None else []
             self.play(
                 Write(title),
@@ -394,23 +422,29 @@ class ReducingError(Scene):
                 FadeIn(datums),
                 FadeIn(err_frame),
                 Write(k_label),
+                Write(times_n),
                 run_time=0.7,
             )
             self._re_k_label = k_label
         else:
             ratio_vec = _quantity_ratio_vector()
             arrow = _rounded_arrow()
+            times_n = _times_n_label(SCALES[0], arrow[1])
             self.play(Write(title), run_time=0.5)
             self.play(
                 FadeIn(datums),
                 FadeIn(ratio_vec),
-                GrowArrow(arrow[0]),
+                Create(arrow[0]),
                 Write(arrow[1]),
+                Write(times_n),
                 FadeIn(err_frame),
                 run_time=0.7,
             )
             existing_pile = None
             existing_labels = None
+        self._re_times_n_anchor = (
+            qr_rounded_lbl if seamless else arrow[1]
+        )
 
         prev_chart = None
         on_scene_bar = None
@@ -446,6 +480,7 @@ class ReducingError(Scene):
                 on_scene_bar = err_bar
                 prev_chart = chart
             else:
+                new_times_n = _times_n_label(scale, self._re_times_n_anchor)
                 self.play(
                     FadeOut(prev_pile),
                     FadeOut(prev_labels),
@@ -454,6 +489,7 @@ class ReducingError(Scene):
                     FadeOut(prev_chart),
                     FadeIn(chart),
                     Transform(on_scene_bar, err_bar),
+                    Transform(times_n, new_times_n),
                     run_time=0.7,
                 )
                 prev_pile = new_pile

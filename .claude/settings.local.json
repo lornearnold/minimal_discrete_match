@@ -7,7 +7,9 @@
       "Bash(ffprobe *)",
       "Bash(rm -rf /tmp/frames)",
       "Bash(mkdir /tmp/frames)",
-      "Bash(ffmpeg -y -i media/videos/full_video/480p30/FullStory.mp4 -vf \"fps=1/4\" /tmp/frames/f%03d.jpg)"
+      "Bash(ffmpeg -y -i media/videos/full_video/480p30/FullStory.mp4 -vf \"fps=1/4\" /tmp/frames/f%03d.jpg)",
+      "Bash(rm -f /tmp/si_frames/spi_*.png)",
+      "Bash(ffmpeg -y -loglevel error -ss 76 -t 16 -i /Users/lornearnold/GitHub/discrete_analytical_mech/manim_exploration/media/videos/full_video/480p30/FullStory.mp4 -vf \"fps=1.5\" /tmp/si_frames/spi_%02d.png)"
     ]
   }
 }

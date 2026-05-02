@@ -58,7 +58,7 @@ config.background_color = BACKGROUND
 N_COARSE, N_MID, N_FINE = 8, 22, 65
 
 ROW_YS = (2.0, 0.0, -2.0)
-DATUM_X_LO, DATUM_X_HI = -6.5, 2.4
+DATUM_X_LO, DATUM_X_HI = -6.5, -0.6
 
 
 def _datum(y: float) -> DashedLine:
@@ -191,7 +191,16 @@ class MassRatios(Scene):
         m1 = MathTex(r"M_1/M_1").set_color(COARSE)
         m2 = MathTex(r"M_2/M_1").set_color(MID)
         m3 = MathTex(r"M_3/M_1").set_color(FINE)
-        bracket = _row_aligned_vector([m1, m2, m3], center_x=4.3, row_ys=ROW_YS)
+        bracket = _row_aligned_vector([m1, m2, m3], center_x=1.5, row_ys=ROW_YS)
+
+        explanation = tex_text(
+            "Ratio of the total mass\n"
+            "in each size range to\n"
+            "the mass in the largest\n"
+            "size range",
+            font_size=32,
+            color=FOREGROUND,
+        ).move_to([4.8, 0, 0])
 
         self.play(Write(title), run_time=0.6)
         self.play(Create(datums), run_time=0.5)
@@ -203,6 +212,7 @@ class MassRatios(Scene):
             Write(m1),
             Write(m2),
             Write(m3),
+            Write(explanation),
             run_time=1.2,
         )
         self.wait(2.05)
@@ -238,7 +248,16 @@ class VolumeRatios(Scene):
         v1 = MathTex(r"V_1/V_1").set_color(COARSE)
         v2 = MathTex(r"V_1/V_2").set_color(MID)
         v3 = MathTex(r"V_1/V_3").set_color(FINE)
-        bracket = _row_aligned_vector([v1, v2, v3], center_x=4.3, row_ys=ROW_YS)
+        bracket = _row_aligned_vector([v1, v2, v3], center_x=1.5, row_ys=ROW_YS)
+
+        explanation = tex_text(
+            "Ratio of the volume of\n"
+            "a single particle of each\n"
+            "size to the volume of\n"
+            "the largest particle",
+            font_size=32,
+            color=FOREGROUND,
+        ).move_to([4.8, 0, 0])
 
         self.play(Write(title), run_time=0.6)
         self.play(Create(datums), run_time=0.5)
@@ -250,6 +269,7 @@ class VolumeRatios(Scene):
             Write(v1),
             Write(v2),
             Write(v3),
+            Write(explanation),
             run_time=1.2,
         )
         self.wait(9.0)

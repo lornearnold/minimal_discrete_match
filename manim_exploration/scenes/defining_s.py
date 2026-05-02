@@ -77,7 +77,7 @@ class DefiningS(Scene):
         # ---- Curly braces flanking the per-band number labels. ----
         numbers_x = PILE_X[1] + 1.5
         brace_anchor = Rectangle(
-            width=2.2,
+            width=1.76,
             height=COARSE_BAND[1] - FINE_BAND[0] + 0.6,
             stroke_opacity=0,
             fill_opacity=0,
@@ -169,10 +169,10 @@ class DefiningS(Scene):
             s_label, DOWN, buff=0.35
         )
         mdm_caption = Text(
-            "S with the least particles is the Minimal Discrete Match",
-            font_size=24,
+            "S with the least particles is\nthe Minimal Discrete Match",
+            font_size=22,
             color=FOREGROUND,
-        ).to_edge(DOWN, buff=0.5)
+        ).move_to([s_label.get_center()[0], 2.5, 0])
 
         self.play(FadeOut(prev_group), run_time=0.5)
         self.play(

@@ -108,10 +108,10 @@ def build_axes_and_labels():
         .to_edge(RIGHT, buff=0.9)
         .shift(DOWN * 0.2)
     )
-    x_label = Text("grain size", font_size=22, color=FOREGROUND).next_to(
+    x_label = Text("size", font_size=22, color=FOREGROUND).next_to(
         axes.x_axis, RIGHT, buff=0.15
     )
-    y_label = Text("Mass", font_size=22, color=FOREGROUND).next_to(
+    y_label = Text("Percent mass", font_size=22, color=FOREGROUND).next_to(
         axes.y_axis, UP, buff=0.15
     )
     return axes, x_label, y_label

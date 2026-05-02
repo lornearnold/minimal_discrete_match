@@ -13,8 +13,10 @@ from manim import (
     LEFT,
     RIGHT,
     UP,
+    YELLOW,
     Arrow,
     Brace,
+    Create,
     FadeIn,
     FadeOut,
     GrowArrow,
@@ -47,10 +49,13 @@ from ratios import mass_blob
 from rounding import (
     ARROW_X,
     LEFT_X,
+    NUM_LABEL_FONT,
     NUM_LABEL_X,
     PILE_BAND_HEIGHT,
+    PILE_X_RANGE,
     QVEC_X,
     ROW_YS,
+    _rounded_arrow,
 )
 
 config.background_color = BACKGROUND
@@ -139,10 +144,10 @@ class QuantityRatio(Scene):
         self.play(Write(equals), FadeIn(q_vec), Write(q_label), run_time=1.0)
 
         caveat = tex_text(
-            "Only the first entry is guaranteed to be an integer.",
-            font_size=30,
+            "Only the first entry is\nguaranteed to be an integer.",
+            font_size=26,
             color=FOREGROUND,
-        ).to_edge(DOWN, buff=0.4)
+        ).move_to([q_vec.get_center()[0], 2.7, 0])
         self.play(Write(caveat), run_time=0.9)
         self.wait(1.4)
 
@@ -185,6 +190,18 @@ class QuantityRatio(Scene):
             Transform(q_vec[2], wider_braces[1]),
             run_time=1.2,
         )
+
+        # Yellow highlight around the first row (1.0 × 1.0 = 1) — the only
+        # row that's guaranteed to be an integer.
+        row_left = mass_vec[0].get_left()[0] - 0.1
+        row_right = q_vec[2].get_right()[0] + 0.1
+        first_row_box = Rectangle(
+            width=row_right - row_left,
+            height=1.3,
+            color=YELLOW,
+            stroke_width=3,
+        ).move_to([(row_left + row_right) / 2, ys[0], 0])
+        self.play(Create(first_row_box), run_time=0.6)
         self.wait(0.7)
 
         # ---- Teaser into the rounding view: q_vec slides left to QVEC_X,
@@ -206,17 +223,8 @@ class QuantityRatio(Scene):
             Brace(new_anchor, LEFT), new_q, Brace(new_anchor, RIGHT)
         )
 
-        arrow = Arrow(
-            start=[ARROW_X - 0.6, 0, 0],
-            end=[ARROW_X + 0.6, 0, 0],
-            color=FOREGROUND,
-            stroke_width=4,
-            max_tip_length_to_length_ratio=0.25,
-            buff=0,
-        )
-        rounded_lbl = tex_text("rounded", font_size=28, color=FOREGROUND).next_to(
-            arrow, UP, buff=0.1
-        )
+        arrow_group = _rounded_arrow()
+        arrow, rounded_lbl = arrow_group[0], arrow_group[1]
 
         # Particle pile + count labels for iter 1 (1 coarse, 5 mid, 12 fine).
         rng = np.random.default_rng(7)
@@ -229,13 +237,13 @@ class QuantityRatio(Scene):
         for n, r, color, y in pile_specs:
             band = (y - PILE_BAND_HEIGHT / 2, y + PILE_BAND_HEIGHT / 2)
             pile.add(scatter_in_band(
-                n, r, color, band, (LEFT_X - 1.1, LEFT_X + 0.9), rng,
+                n, r, color, band, PILE_X_RANGE, rng,
             ))
 
         count_labels = VGroup(
-            tex_text("1", font_size=84, color=COARSE).move_to([NUM_LABEL_X, ROW_YS[0], 0]),
-            tex_text("5", font_size=84, color=MID).move_to([NUM_LABEL_X, ROW_YS[1], 0]),
-            tex_text("12", font_size=84, color=FINE).move_to([NUM_LABEL_X, ROW_YS[2], 0]),
+            tex_text("1", font_size=NUM_LABEL_FONT, color=COARSE).move_to([NUM_LABEL_X, ROW_YS[0], 0]),
+            tex_text("5", font_size=NUM_LABEL_FONT, color=MID).move_to([NUM_LABEL_X, ROW_YS[1], 0]),
+            tex_text("12", font_size=NUM_LABEL_FONT, color=FINE).move_to([NUM_LABEL_X, ROW_YS[2], 0]),
         )
 
         self.play(
@@ -249,13 +257,14 @@ class QuantityRatio(Scene):
             FadeOut(equals),
             FadeOut(q_label),
             FadeOut(caveat),
+            FadeOut(first_row_box),
             Transform(q_vec[0], new_q_vec[0]),
             Transform(q_vec[2], new_q_vec[2]),
             Transform(q_entries, new_q),
             run_time=0.9,
         )
         self.play(
-            GrowArrow(arrow),
+            Create(arrow),
             Write(rounded_lbl),
             FadeIn(pile),
             FadeIn(count_labels),

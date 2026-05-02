@@ -177,12 +177,14 @@ class DefiningG(Scene):
 
         prev_bars = bars
         first_step = True
+        all_continuum = VGroup()
 
         for n_sieves, n_new in steps:
             new_edges = list(np.linspace(X_LEFT, SIEVE_XS_3[-1], n_sieves + 1))
             new_bars = build_gsd_bars(new_edges, axes)
 
             new_particles = _generate_batch(n_new, obstacles, rng)
+            all_continuum.add(*new_particles)
 
             anims = [
                 FadeOut(prev_bars),
@@ -200,9 +202,8 @@ class DefiningG(Scene):
             prev_bars = new_bars
 
         caption = Text(
-            "More sizes — finer approximation.\n"
-            "The smooth curve is the limit.",
-            font_size=22,
+            "Using many sieve sizes gives a finer approximation",
+            font_size=24,
             color=FOREGROUND,
         ).to_edge(UP, buff=0.35)
         self.play(Write(caption), run_time=1.2)
@@ -230,6 +231,25 @@ class DefiningG(Scene):
         self.play(Write(g_label), run_time=0.7)
 
         self.wait(2.5)
+
+        # ---- Switch back to PileToGSD's end-state (datums + piles), keeping
+        # the smooth G curve and "G" label.
+        new_title = Text(
+            "We'll show three moving forward",
+            font_size=24,
+            color=FOREGROUND,
+        ).to_edge(UP, buff=0.35)
+        fresh_datums = build_datums()
+        self.play(
+            FadeOut(all_continuum),
+            FadeOut(prev_bars),
+            FadeOut(bar_top_dots),
+            FadeOut(caption),
+            FadeIn(fresh_datums),
+            Write(new_title),
+            run_time=1.2,
+        )
+        self.wait(2.0)
 
 
 # Backwards-compat alias.
