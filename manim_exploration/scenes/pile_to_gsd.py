@@ -158,4 +158,4 @@ class PileToGSD(Scene):
         self.play(Write(note), run_time=1.0)
         self._note_mob = note
 
-        self.wait(2.1)
+        self.wait(1.1)

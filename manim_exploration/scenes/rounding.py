@@ -516,7 +516,7 @@ class ReducingError(Scene):
                 prev_pile = new_pile
                 prev_labels = new_labels
                 prev_chart = chart
-            self.wait(0.4)
+            self.wait(1.0)
 
         # Stash for SpannedIntegerApproach.
         self._re_title = title
@@ -528,4 +528,6 @@ class ReducingError(Scene):
         self._re_err_bar = on_scene_bar
         self._re_times_n = times_n
 
-        self.wait(0.5)
+        # Final iter-3 hold + the storyboard's ~3 s pause before the
+        # spanned-integer approach.
+        self.wait(6.7)

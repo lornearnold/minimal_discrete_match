@@ -272,4 +272,4 @@ class VolumeRatios(Scene):
             Write(explanation),
             run_time=1.2,
         )
-        self.wait(9.0)
+        self.wait(11.0)

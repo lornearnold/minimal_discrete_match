@@ -249,7 +249,7 @@ class DefiningG(Scene):
             Write(new_title),
             run_time=1.2,
         )
-        self.wait(2.0)
+        self.wait(2.4)
 
 
 # Backwards-compat alias.

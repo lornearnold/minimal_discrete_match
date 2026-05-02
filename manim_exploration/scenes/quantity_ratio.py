@@ -270,7 +270,7 @@ class QuantityRatio(Scene):
             FadeIn(count_labels),
             run_time=0.7,
         )
-        self.wait(0.3)
+        self.wait(1.2)
 
         # Stash for the seamless handoff to ReducingError.
         self._qr_q_vec = q_vec  # already transformed to new_q_vec position

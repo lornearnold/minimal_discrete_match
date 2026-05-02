@@ -669,4 +669,4 @@ class SpannedIntegerError(Scene):
             Write(total_label),
             run_time=1.0,
         )
-        self.wait(4.5)
+        self.wait(3.6)

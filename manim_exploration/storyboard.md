@@ -77,6 +77,9 @@ We can now write an algorithm to find an integer solution by duplicating and rou
 This approach uses only fixed volume ratios, but we can utilize the ability to change them to find a smaller solution. We can calculate a range of quantity ratios and find an integer number of particles falls between them. 
 
 [Verification - 5 s]
-Using this new algorithm, we can accurately predict the number of particles needed to build models of real-world soil.
+We tested the spanned integer algorithm against the number of particles reported in a recently published soil mechanics study.
+Our predictions matched the reported numbers of scaled up simulations with thousands to millions of particles.
+We can also predict the minimum number of particles it would take to build 1:1 models of real-world soil.
+
 
 

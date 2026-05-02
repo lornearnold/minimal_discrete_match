@@ -230,4 +230,4 @@ class Verification(Scene):
             run_time=1.2,
         )
         self.play(FadeIn(citation), run_time=0.7)
-        self.wait(11.3)
+        self.wait(0.05)

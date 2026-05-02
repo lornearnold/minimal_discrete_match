@@ -181,4 +181,4 @@ class DefiningS(Scene):
             Write(mdm_caption),
             run_time=0.9,
         )
-        self.wait(1.7)
+        self.wait(8.4)

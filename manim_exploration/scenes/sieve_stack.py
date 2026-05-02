@@ -170,7 +170,7 @@ class SieveStack(Scene):
             )
 
         self.play(*anims)
-        self.wait(0.3)
+        self.wait(1.47)
 
         # Stash for the bridge transition into PileToGSD.
         self.cloud = cloud
