@@ -30,6 +30,7 @@ from manim import (
     FadeIn,
     Line,
     MathTex,
+    Polygon,
     Scene,
     Square,
     Text,
@@ -186,6 +187,19 @@ class Verification(Scene):
             color=FOREGROUND,
         ).move_to(axes.c2p(np.log10(2e8), np.log10(2e8))).shift(UP * 0.5 + LEFT * 1.4)
 
+        # ---- Rectangle around the four unscaled (y=x) points. ----
+        unscaled_logs = [np.log10(n_pred) for _, n_pred in ZS_UNSCALED_PREDICTED]
+        u_lo = min(unscaled_logs) - 0.25
+        u_hi = max(unscaled_logs) + 0.25
+        unscaled_box = Polygon(
+            axes.c2p(u_lo, u_lo),
+            axes.c2p(u_hi, u_lo),
+            axes.c2p(u_hi, u_hi),
+            axes.c2p(u_lo, u_hi),
+            color=FOREGROUND,
+            stroke_width=2,
+        )
+
         # ---- Citation taking most of the space to the right of the chart. ----
         citation = VGroup(
             tex_text("Arnold & Arnold (2026)", font_size=36, color=FOREGROUND),
@@ -209,6 +223,11 @@ class Verification(Scene):
         )
         self.play(Create(diag), run_time=0.5)
         self.play(FadeIn(scaled_markers, lag_ratio=0.05), run_time=1.5)
-        self.play(FadeIn(unscaled_markers, lag_ratio=0.1), Write(unscaled_caption), run_time=1.2)
+        self.play(
+            FadeIn(unscaled_markers, lag_ratio=0.1),
+            Create(unscaled_box),
+            Write(unscaled_caption),
+            run_time=1.2,
+        )
         self.play(FadeIn(citation), run_time=0.7)
         self.wait(11.3)

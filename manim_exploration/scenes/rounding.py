@@ -127,7 +127,7 @@ SIEVE_XS = np.array([0.0, 0.5, 1.0, 2.0])  # pan, x_1, x_2, x_3 (linear axis)
 ITER_PP = {
     1: np.array([0.0, 0.05, 0.58, 0.80]),  # red below, blue above, green below
     2: np.array([0.0, 0.08, 0.50, 0.88]),  # same above/below by color
-    3: np.array([0.0, 0.11, 0.46, 0.99]),  # all dots within 2% of target
+    3: np.array([0.0, 0.108, 0.48, 0.995]), # all dots within ~2% of target
 }
 
 
@@ -161,6 +161,17 @@ def _smooth_curve(axes: Axes, target_pp: np.ndarray) -> VMobject:
     curve = VMobject(stroke_color=FOREGROUND, stroke_width=3)
     curve.set_points_smoothly(pts)
     return curve
+
+
+def smoothed_pp_at_sieves(target_pp: np.ndarray) -> np.ndarray:
+    """Y-values along _smooth_curve evaluated at SIEVE_XS — for placing
+    sieve dots ON the curve rather than at the raw target_pp values."""
+    xs_dense = np.linspace(SIEVE_XS[0], SIEVE_XS[-1], 80)
+    sig_dense = 1 / (1 + np.exp(-3.5 * (xs_dense - 1.0)))
+    sig_min, sig_max = sig_dense.min(), sig_dense.max()
+    sig_at_sieves = 1 / (1 + np.exp(-3.5 * (SIEVE_XS - 1.0)))
+    sig_at_sieves = (sig_at_sieves - sig_min) / (sig_max - sig_min)
+    return 0.4 * np.asarray(target_pp) + 0.6 * sig_at_sieves
 
 
 def _stair_curve(axes: Axes, pp: np.ndarray, color, dashed: bool = False) -> VMobject:
@@ -217,10 +228,20 @@ def _piles_with_counts(counts: np.ndarray, rng: np.random.Generator) -> VGroup:
         (n_fine, FINE_R, FINE, ROW_YS[2]),
     ]
     for n, r, color, y in specs:
-        band = (y - PILE_BAND_HEIGHT / 2, y + PILE_BAND_HEIGHT / 2)
-        pile = scatter_in_band(
-            n, r, color, band, PILE_X_RANGE, rng,
-        )
+        if n == 3 and r == COARSE_R:
+            # Three coarse particles don't fit comfortably in the default
+            # band/x_range without overlap — hand-place them in a triangle
+            # that stays inside the datum lines.
+            pile = VGroup(
+                make_particle(r, color).move_to([PILE_X_RANGE[0] + r + 0.05, y + 0.30, 0]),
+                make_particle(r, color).move_to([PILE_X_RANGE[1] - r - 0.05, y + 0.30, 0]),
+                make_particle(r, color).move_to([(PILE_X_RANGE[0] + PILE_X_RANGE[1]) / 2, y - 0.30, 0]),
+            )
+        else:
+            band = (y - PILE_BAND_HEIGHT / 2, y + PILE_BAND_HEIGHT / 2)
+            pile = scatter_in_band(
+                n, r, color, band, PILE_X_RANGE, rng,
+            )
         label = tex_text(str(n), font_size=NUM_LABEL_FONT, color=color).move_to(
             [NUM_LABEL_X, y, 0]
         )
@@ -505,5 +526,6 @@ class ReducingError(Scene):
         self._re_chart = prev_chart
         self._re_err_frame = err_frame
         self._re_err_bar = on_scene_bar
+        self._re_times_n = times_n
 
         self.wait(0.5)

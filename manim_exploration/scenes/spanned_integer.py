@@ -1,22 +1,42 @@
 """Spanned-integer approach + MDM result.
 
-Picks up the layout left by the Fixed-size-iteration scene (q_vec → arrow →
-integer pile → cumulative chart → error bar) and animates:
+Six-beat structure (high-school / general audience). The visual must TELL
+the story, not prove the algorithm.
 
-  - reduce pile to one particle per tier (only the coarse "largest" stays);
-  - mid + fine slide up to their bands' upper limits and grow → realized
-    quantity ratios become K_+ = (1, 4.1, 11.8); error remains;
-  - shift the pile right, add a K_- vector and a second mid + fine particle
-    sliding to each band's lower limit (smaller); both curves on the chart
-    show non-zero error;
-  - spanned-integer reveal: large+small particles in each tier merge into a
-    single intermediate-size particle whose size is proportional to where
-    the integer falls between K_- and K_+; realized curve hits the target,
-    error band collapses, error bar drops to zero;
-  - MDM box + label.
+  Beat 0: Carry-over cleanup. Title swaps to "Spanned-integer approach".
+          Fade out the multi-particle pile, big count labels, the curved
+          arrow + "rounded" label, and the "x N" multiplier. Replace the
+          pile with ONE midrange-sized representative particle per tier.
+          Chart and error bar reset to a "moderate" error.
 
-Numbers: K_PLUS = (1, 4.1, 11.8), K_MINUS = (1, 6.8, 13.4),
-spanned integers = (1, 5, 12) for [coarse, mid, fine].
+  Beat 1: Particles GROW to the largest size in each band -> K_+. Mid +
+          fine particles end up TANGENT to their upper sieve datum lines.
+          K-vector morphs to K_+ values (1, 4.1, 11.8), all shifted LEFT
+          inside a wider bracket; K_+ label appears above-left. Realized
+          curve drops below target; error bar grows red.
+
+  Beat 2: SHRINK companion: smaller particles appear TANGENT to the
+          lower sieve datums. K_- values (6.8, 13.4) fade in on the
+          RIGHT column of the same wider bracket; K_- label below-right.
+          Second realized curve appears above target.
+
+  Beat 3: STANDALONE BINGO reveal. Spanned integers (1, 5, 12) pop in
+          (0.6x->1.4x->1.0x) in YELLOW, just outside the bracket on
+          the right at y-positions proportional to where each integer
+          sits between K_+ and K_- particle y. Caption: "A whole number
+          is between them!"
+
+  Beat 4: Resolution. The two particles per tier merge into a single
+          intermediate-size particle at the integer's y. Both realized
+          curves fade out and the target curve appears; white dots land
+          ON the smoothed curve. Error bar -> 0.
+
+  Beat 5: K_+/K_- entries + bracket + labels FADE. The MDM box hugs
+          the spanned-integer column + merged-particle column; red
+          "Minimal Discrete Match" label below; particle-count subtitle.
+
+Numbers (per manuscript): K_+ = (1, 4.1, 11.8), K_- = (1, 6.8, 13.4),
+spanned integers = (1, 5, 12), in [coarse, mid, fine] order.
 """
 
 from __future__ import annotations
@@ -28,19 +48,18 @@ from manim import (
     RIGHT,
     UP,
     WHITE,
-    Arrow,
+    YELLOW,
     Brace,
     Create,
     DashedLine,
     Dot,
     FadeIn,
     FadeOut,
-    GrowArrow,
+    Line,
     MathTex,
-    Polygon,
     Rectangle,
     Scene,
-    Text,
+    Tex,
     Transform,
     VGroup,
     VMobject,
@@ -62,15 +81,11 @@ from _common import (
     tex_text,
 )
 from rounding import (
-    ARROW_X,
     CHART_X,
     ERR_BAR_BOTTOM_Y,
     ERR_BAR_HEIGHT,
-    ERR_BAR_WIDTH,
     ERR_BAR_X,
     ERR_FRACS,
-    ERR_HIGH_COLOR,
-    ERR_OK_COLOR,
     LEFT_X,
     NUM_LABEL_X,
     PILE_BAND_HEIGHT,
@@ -78,11 +93,11 @@ from rounding import (
     ROW_YS,
     SIEVE_XS,
     TARGET_PP,
-    TOLERANCE_FRAC,
     _build_chart,
     _datums,
     _err_bar,
     _err_bar_frame,
+    _error_band,
     _piles_with_counts,
     _quantity_ratio_vector,
     _round_match,
@@ -90,7 +105,7 @@ from rounding import (
     _smooth_curve,
     _stair_curve,
     _sieve_dots,
-    _build_axes,
+    smoothed_pp_at_sieves,
 )
 
 config.background_color = BACKGROUND
@@ -98,115 +113,121 @@ config.background_color = BACKGROUND
 
 # ---- Numbers (per manuscript) ----
 # Order matches the q_vec rows: [coarse, mid, fine].
-K_PLUS = (1.0, 4.1, 11.8)    # max-size end of each range (smaller ratio)
-K_MINUS = (1.0, 6.8, 13.4)   # min-size end of each range (larger ratio)
-SPANNED_INTEGERS_DISPLAY = (1, 5, 12)            # [coarse, mid, fine]
-# _piles_with_counts expects [fine, mid, coarse]:
-SPANNED_INTEGERS_FMC = np.array([12, 5, 1])
+K_PLUS = (1.0, 4.1, 11.8)             # max-size end of each range
+K_MINUS = (1.0, 6.8, 13.4)            # min-size end of each range
+Q_VEC_MID = (1.0, 4.6, 12.1)          # midrange (= original quantity ratio)
+SPANNED_INTEGERS_DISPLAY = (1, 5, 12) # [coarse, mid, fine]
 
 
-# ---- Sizes for each tier at the upper / lower limits of its size range. ----
-# "Upper limit" = larger particle (smaller ratio). The merged spanned-integer
-# size is placed proportionally between min and max based on where the
-# integer count falls between K_- and K_+.
+# ---- Per-tier radii at HI / LO / MID of each sieve interval. ----
 MID_R_HI, MID_R_LO = MID_R * 1.55, MID_R * 0.65
+MID_R_MID = (MID_R_HI + MID_R_LO) / 2
 FINE_R_HI, FINE_R_LO = FINE_R * 1.55, FINE_R * 0.55
+FINE_R_MID = (FINE_R_HI + FINE_R_LO) / 2
 
 
-def _interp_radius(integer: int, k_plus: float, k_minus: float, r_hi: float, r_lo: float) -> float:
-    """Pick a radius for the spanned integer particle: position 0 = max
-    size end (k_plus), position 1 = min size end (k_minus)."""
+# ---- Sieve datum y values (must mirror _datums() in rounding.py). ----
+DATUM_TOP = ROW_YS[0] + PILE_BAND_HEIGHT / 2 + 0.3        # 2.6 (above coarse)
+DATUM_COARSE_MID = (ROW_YS[0] + ROW_YS[1]) / 2            # 0.9 (between coarse + mid)
+DATUM_MID_FINE = (ROW_YS[1] + ROW_YS[2]) / 2              # -0.9 (between mid + fine)
+DATUM_BOT = ROW_YS[-1] - PILE_BAND_HEIGHT / 2 - 0.3       # -2.6 (below fine)
+
+
+# ---- Tangent particle y-positions (ON the sieve lines). ----
+# Particle CENTER = datum ± radius. K_+ particle is tangent to upper datum,
+# K_- particle to lower datum. Coarse uses row center (no HI/LO defined).
+COARSE_PILE_Y = ROW_YS[0]
+MID_KPLUS_PILE_Y = DATUM_COARSE_MID - MID_R_HI
+MID_KMINUS_PILE_Y = DATUM_MID_FINE + MID_R_LO
+FINE_KPLUS_PILE_Y = DATUM_MID_FINE - FINE_R_HI
+FINE_KMINUS_PILE_Y = DATUM_BOT + FINE_R_LO
+
+
+def _interp_radius(integer: int, k_plus: float, k_minus: float,
+                   r_hi: float, r_lo: float) -> float:
+    """Pick a radius for the merged spanned-integer particle: position 0 =
+    max-size end (k_plus), position 1 = min-size end (k_minus)."""
     frac = float(np.clip((integer - k_plus) / max(k_minus - k_plus, 1e-9), 0, 1))
     return r_hi - frac * (r_hi - r_lo)
 
 
-# Sizes used for the merged spanned-integer particles.
-MID_R_SPAN = _interp_radius(SPANNED_INTEGERS_DISPLAY[1], K_PLUS[1], K_MINUS[1], MID_R_HI, MID_R_LO)
-FINE_R_SPAN = _interp_radius(SPANNED_INTEGERS_DISPLAY[2], K_PLUS[2], K_MINUS[2], FINE_R_HI, FINE_R_LO)
+MID_R_SPAN = _interp_radius(SPANNED_INTEGERS_DISPLAY[1], K_PLUS[1], K_MINUS[1],
+                            MID_R_HI, MID_R_LO)
+FINE_R_SPAN = _interp_radius(SPANNED_INTEGERS_DISPLAY[2], K_PLUS[2], K_MINUS[2],
+                             FINE_R_HI, FINE_R_LO)
 
 
-# ---- Realized cumulative-passing for K_+ and K_- ratios. ----
-PER_PARTICLE_MASS_3 = np.array([0.5, 1.0, 2.0]) ** 3  # [fine, mid, coarse]
+# ---- Hand-tuned realized cumulative-passing per beat. ----
+# Format: [pan, fine_dot, mid_dot, coarse_dot]. Target is approx
+# [0, 0.107, 0.433, 1.0]. We exaggerate small mathematical differences
+# for pedagogical clarity (matching the rounding scene's style).
+PP_BEAT0 = np.array([0.0, 0.13, 0.50, 0.96])    # midrange: slight overshoot
+PP_KPLUS = np.array([0.0, 0.05, 0.27, 0.85])    # large size: under target
+PP_KMINUS = np.array([0.0, 0.20, 0.62, 1.0])    # small size: over target
 
 
-def _pp_from_ratios(ratios_cmf: tuple[float, float, float]) -> np.ndarray:
-    """Cumulative passing at sieves [pan, x_1, x_2, x_3] from quantity
-    ratios in [coarse, mid, fine] order."""
-    coarse, mid, fine = ratios_cmf
-    counts = np.array([fine, mid, coarse])  # convert to [fine, mid, coarse]
-    masses = counts * PER_PARTICLE_MASS_3
-    total = masses.sum()
-    return np.array([0.0, masses[0], masses[0] + masses[1], total]) / total
-
-
-PP_KPLUS = _pp_from_ratios(K_PLUS)
-PP_KMINUS = _pp_from_ratios(K_MINUS)
-
-
-def _err_magnitude(pp: np.ndarray) -> float:
-    return float(np.sum(np.abs(pp[1:-1] - TARGET_PP[1:-1])))
-
-
-# Fractions for the error bar. Using the rounding scene's reference so the
-# bars read on the same scale.
-_ERR_REF = max(ERR_FRACS) * (1 / max(ERR_FRACS))  # = 1.0 at iter 1
-ERR_FRAC_KPLUS = max(0.4, _err_magnitude(PP_KPLUS) / _err_magnitude(PP_KPLUS))  # placeholder; see below
-# We want a non-zero (but visible) error for K_+ and K_-. The raw magnitudes
-# are tiny relative to iter-1 of the rounding scene, so we display them at
-# fixed visible fractions for clarity.
+# ---- Error bar fractions (visual scale, 0=zero, 1=max). ----
+ERR_FRAC_BEAT0 = 0.35
 ERR_FRAC_KPLUS = 0.55
 ERR_FRAC_KMINUS = 0.65
 ERR_FRAC_SPANNED = 0.0
 
 
-# Vertical offset of K_+ entries (above each tier row) vs K_- entries (below).
-# Used for both the values inside the combined K_+/K_- bracket AND the
-# particles in the sieve stack, so numbers and particles line up.
+# ---- K vector layout — horizontal: K_+ LEFT, K_- RIGHT. ----
+# Entries stay at fixed y-offsets from row centers (≠ particle tangent
+# positions). Decoupling is intentional: the entries must fit cleanly
+# inside each tier's band, while particles sit precisely on the datum.
 KVEC_Y_OFFSET = 0.45
+K_VEC_X_OFFSET = 0.55                 # K_+ / K_- column offset from QVEC_X
+KPLUS_X = QVEC_X - K_VEC_X_OFFSET     # ~ -5.75
+KMINUS_X = QVEC_X + K_VEC_X_OFFSET    # ~ -4.65
+BRACKET_HALF_WIDTH = 1.05             # bracket extends ±this from QVEC_X
 
 
-def _combined_anchor_geom() -> tuple[float, float]:
-    """(height, center_y) of the rectangle that the combined K_+/K_- bracket
-    encloses: from above the coarse row down to below the fine K_- row."""
+# ---- Caption position + style. ----
+CAPTION_Y = -3.05
+CAPTION_FONT = 30
+CAPTION_FONT_BIG = 38
+
+
+# ---- Spanned-integer column (outside bracket on the right). ----
+SPAN_X = QVEC_X + 1.7                 # ~ -3.5
+INTEGER_FONT = 70
+
+
+def _spanned_integer_y_positions() -> tuple[float, float, float]:
+    """Y for each spanned integer. Coarse: row center (K_+ = K_-). Mid /
+    fine: visually proportional between K_+ and K_- *particle* y based on
+    where the integer falls between K_+ and K_-. The merged particle in
+    Beat 4 lands at this same y, so integer + particle stay aligned."""
+    mid_frac = float(np.clip(
+        (SPANNED_INTEGERS_DISPLAY[1] - K_PLUS[1])
+        / max(K_MINUS[1] - K_PLUS[1], 1e-9), 0, 1
+    ))
+    fine_frac = float(np.clip(
+        (SPANNED_INTEGERS_DISPLAY[2] - K_PLUS[2])
+        / max(K_MINUS[2] - K_PLUS[2], 1e-9), 0, 1
+    ))
+    mid_y = MID_KPLUS_PILE_Y - mid_frac * (MID_KPLUS_PILE_Y - MID_KMINUS_PILE_Y)
+    fine_y = FINE_KPLUS_PILE_Y - fine_frac * (FINE_KPLUS_PILE_Y - FINE_KMINUS_PILE_Y)
+    return (COARSE_PILE_Y, mid_y, fine_y)
+
+
+def _bracket_geom() -> tuple[float, float, float]:
+    """(width, height, center_y) of the wider K_+/K_- horizontal-layout
+    bracket. Fixed enclosing rectangle that covers both K_+ entries (top
+    half, mid+fine pushed UP) and K_- entries (bottom half, mid+fine pushed
+    DOWN), with a small margin."""
     top_y = ROW_YS[0] + 0.2
     bot_y = ROW_YS[-1] - KVEC_Y_OFFSET - 0.2
-    return (top_y - bot_y, (top_y + bot_y) / 2)
+    return (2 * BRACKET_HALF_WIDTH, top_y - bot_y, (top_y + bot_y) / 2)
 
 
-def _fmt(v: float) -> str:
-    return "1" if abs(v - 1.0) < 1e-9 else f"{v:.1f}"
-
-
-def _kplus_entries(center_x: float) -> VGroup:
-    """K_+ values: coarse at row center; mid + fine pushed UP."""
-    return VGroup(
-        MathTex(_fmt(K_PLUS[0]), color=COARSE).scale(1.4).move_to([center_x, ROW_YS[0], 0]),
-        MathTex(_fmt(K_PLUS[1]), color=MID).scale(1.4).move_to(
-            [center_x, ROW_YS[1] + KVEC_Y_OFFSET, 0]
-        ),
-        MathTex(_fmt(K_PLUS[2]), color=FINE).scale(1.4).move_to(
-            [center_x, ROW_YS[2] + KVEC_Y_OFFSET, 0]
-        ),
-    )
-
-
-def _kminus_entries(center_x: float) -> VGroup:
-    """K_- values: mid + fine pushed DOWN. Coarse skipped (= K_+ coarse)."""
-    return VGroup(
-        MathTex(_fmt(K_MINUS[1]), color=MID).scale(1.4).move_to(
-            [center_x, ROW_YS[1] - KVEC_Y_OFFSET, 0]
-        ),
-        MathTex(_fmt(K_MINUS[2]), color=FINE).scale(1.4).move_to(
-            [center_x, ROW_YS[2] - KVEC_Y_OFFSET, 0]
-        ),
-    )
-
-
-def _combined_bracket(center_x: float, ref_width: float) -> VGroup:
-    h, cy = _combined_anchor_geom()
+def _wider_bracket(center_x: float) -> VGroup:
+    width, height, cy = _bracket_geom()
     anchor = Rectangle(
-        width=ref_width + 0.3,
-        height=h,
+        width=width,
+        height=height,
         stroke_opacity=0,
         fill_opacity=0,
     ).move_to([center_x, cy, 0])
@@ -217,273 +238,384 @@ def _fmt(v: float) -> str:
     return "1" if abs(v - 1.0) < 1e-9 else f"{v:.1f}"
 
 
-def _single_particle_pile(counts_cmf: tuple[int, int, int], radii: tuple[float, float, float], y_offsets: tuple[float, float, float], pile_x: float) -> VGroup:
-    """Place exactly one particle per tier at the row y plus an offset, with
-    custom radii — used for the K_+ / K_- visualization where we want full
-    control over per-tier size and y-position."""
-    pile = VGroup()
-    coarse = make_particle(radii[0], COARSE).move_to([pile_x, ROW_YS[0] + y_offsets[0], 0])
-    mid = make_particle(radii[1], MID).move_to([pile_x, ROW_YS[1] + y_offsets[1], 0])
-    fine = make_particle(radii[2], FINE).move_to([pile_x, ROW_YS[2] + y_offsets[2], 0])
-    pile.add(coarse, mid, fine)
-    return pile
+def _kplus_entries() -> VGroup:
+    """K_+ values (coarse, mid, fine) in the LEFT column of the bracket.
+    Mid + fine are pushed UP by KVEC_Y_OFFSET; coarse on its row center."""
+    return VGroup(
+        MathTex(_fmt(K_PLUS[0]), color=COARSE).scale(1.4).move_to(
+            [KPLUS_X, ROW_YS[0], 0]
+        ),
+        MathTex(_fmt(K_PLUS[1]), color=MID).scale(1.4).move_to(
+            [KPLUS_X, ROW_YS[1] + KVEC_Y_OFFSET, 0]
+        ),
+        MathTex(_fmt(K_PLUS[2]), color=FINE).scale(1.4).move_to(
+            [KPLUS_X, ROW_YS[2] + KVEC_Y_OFFSET, 0]
+        ),
+    )
+
+
+def _kminus_entries() -> VGroup:
+    """K_- values (mid, fine) in the RIGHT column of the bracket. Pushed
+    DOWN by KVEC_Y_OFFSET. Coarse is skipped (K_+ = K_- = 1)."""
+    return VGroup(
+        MathTex(_fmt(K_MINUS[1]), color=MID).scale(1.4).move_to(
+            [KMINUS_X, ROW_YS[1] - KVEC_Y_OFFSET, 0]
+        ),
+        MathTex(_fmt(K_MINUS[2]), color=FINE).scale(1.4).move_to(
+            [KMINUS_X, ROW_YS[2] - KVEC_Y_OFFSET, 0]
+        ),
+    )
+
+
+def _kplus_label() -> VMobject:
+    """K_+ label, anchored above the LEFT column."""
+    width, height, cy = _bracket_geom()
+    top_y = cy + height / 2
+    return MathTex("K_+", color=FOREGROUND).scale(1.2).move_to(
+        [KPLUS_X, top_y + 0.35, 0]
+    )
+
+
+def _kminus_label() -> VMobject:
+    """K_- label, anchored below the RIGHT column."""
+    width, height, cy = _bracket_geom()
+    bot_y = cy - height / 2
+    return MathTex("K_-", color=FOREGROUND).scale(1.2).move_to(
+        [KMINUS_X, bot_y - 0.35, 0]
+    )
+
+
+def _single_particle_pile(radii: tuple[float, float, float],
+                          ys: tuple[float, float, float],
+                          pile_x: float) -> VGroup:
+    """One particle per tier at (pile_x, ys[i]) with the given radii.
+    Order: coarse, mid, fine."""
+    return VGroup(
+        make_particle(radii[0], COARSE).move_to([pile_x, ys[0], 0]),
+        make_particle(radii[1], MID).move_to([pile_x, ys[1], 0]),
+        make_particle(radii[2], FINE).move_to([pile_x, ys[2], 0]),
+    )
 
 
 def _build_realized_curve(pp: np.ndarray, axes, color, width: float = 3) -> VMobject:
     return _stair_curve(axes, pp, color).set_stroke(width=width)
 
 
+def _build_caption(text: str, big: bool = False, color=FOREGROUND) -> VMobject:
+    """Captions may contain LaTeX math (`$...$`); use Tex directly so command
+    sequences like ``\\to`` aren't escaped to text."""
+    fs = CAPTION_FONT_BIG if big else CAPTION_FONT
+    return Tex(text, font_size=fs, color=color).move_to([0, CAPTION_Y, 0])
+
+
 class SpannedIntegerApproach(Scene):
     def construct(self):
-        # Seamless mode: pull state from ReducingError (iter 3 layout already
-        # on screen). Otherwise build everything fresh.
         seamless = hasattr(self, "_re_pile")
 
+        # ---- Pull state from previous scene OR build fresh. ----
         if seamless:
             title = self._re_title
-            ratio_vec = self._qr_q_vec
-            arrow = self._qr_arrow
-            rounded_lbl = self._qr_rounded_lbl
-            datums = self._re_datums
-            chart = self._re_chart
-            err_frame = self._re_err_frame
-            err_bar_init = self._re_err_bar
-            piles_init = self._re_pile
-            labels_init = self._re_labels
-
-            # De-clutter for the spanned-integer view: drop the arrow,
-            # "rounded" label, and per-tier integer labels (those will
-            # reappear inside the spanned-integer vector later).
-            new_title = tex_text(
-                "Spanned-integer approach",
-                font_size=44,
-                color=FOREGROUND,
-            ).to_edge(UP, buff=0.3)
-            self.play(
-                Transform(title, new_title),
-                FadeOut(arrow),
-                FadeOut(rounded_lbl),
-                FadeOut(labels_init),
-                run_time=0.6,
-            )
+            ratio_vec = self._qr_q_vec  # [LEFT_brace, stack, RIGHT_brace]
+            old_pile = self._re_pile
+            old_labels = self._re_labels
+            old_arrow = self._qr_arrow
+            old_rounded_lbl = self._qr_rounded_lbl
+            old_times_n = getattr(self, "_re_times_n", None)
+            old_chart = self._re_chart
+            old_err_bar = self._re_err_bar
+            existing_k_label = getattr(self, "_re_k_label", None)
         else:
+            # Standalone: build the iter-3 layout (matching ReducingError end).
             title = tex_text(
-                "Spanned-integer approach",
-                font_size=44,
-                color=FOREGROUND,
+                "Fixed size iteration", font_size=44, color=FOREGROUND,
             ).to_edge(UP, buff=0.3)
-            rng = np.random.default_rng(7)
-            counts1 = _round_match(1)
-            ratio_vec = _quantity_ratio_vector()
+            rng = np.random.default_rng(13)
+            counts3 = _round_match(3)
+            ratio_vec_2 = _quantity_ratio_vector()
+            ratio_vec = VGroup(ratio_vec_2[0][0], ratio_vec_2[1], ratio_vec_2[0][1])
             arrow_grp = _rounded_arrow()
-            arrow = arrow_grp[0]
-            rounded_lbl = arrow_grp[1]
-            datums = _datums()
-            piles_with_labels = _piles_with_counts(counts1, rng)
-            piles_init = VGroup(*[row[0] for row in piles_with_labels])
-            labels_init = VGroup(*[row[1] for row in piles_with_labels])
-            chart = _build_chart(counts1, scale=1)
-            err_frame = _err_bar_frame()
-            err_bar_init = _err_bar(ERR_FRACS[0])
-            self.add(
-                title, ratio_vec, arrow, rounded_lbl, datums,
-                piles_init, labels_init, chart, err_frame, err_bar_init,
+            old_arrow = arrow_grp[0]
+            old_rounded_lbl = arrow_grp[1]
+            old_times_n = tex_text("x 3", font_size=28, color=FOREGROUND).next_to(
+                old_rounded_lbl, UP, buff=0.15
             )
-            self.wait(0.6)
+            piles_with_labels = _piles_with_counts(counts3, rng)
+            old_pile = VGroup(*[row[0] for row in piles_with_labels])
+            old_labels = VGroup(*[row[1] for row in piles_with_labels])
+            old_chart = _build_chart(counts3, scale=3)
+            err_frame = _err_bar_frame()
+            old_err_bar = _err_bar(ERR_FRACS[2])
+            existing_k_label = MathTex("K", color=FOREGROUND).scale(1.0).next_to(
+                ratio_vec, UP, buff=0.15
+            )
+            datums = _datums()
+            self.add(
+                title, ratio_vec, old_arrow, old_rounded_lbl, old_times_n,
+                datums, old_pile, old_labels, old_chart, err_frame, old_err_bar,
+                existing_k_label,
+            )
+            self.wait(0.3)
 
-        # ---- Beat 2: collapse pile to one of each tier with K_+ sizes high;
-        # q_vec entries morph to K_+ values (coarse at row center, mid + fine
-        # pushed UP); bracket grows to the combined K_+/K_- final extent;
-        # "K" label morphs to "K_+"; chart + err_bar update.
-        pile_x = LEFT_X
-        # Particles aligned to numbers — same y offsets as K_+ entries.
-        single_hi = _single_particle_pile(
-            (1, 1, 1),
-            (COARSE_R, MID_R_HI, FINE_R_HI),
-            (0, KVEC_Y_OFFSET, KVEC_Y_OFFSET),  # coarse center; mid+fine UP
-            pile_x,
+        axes = old_chart[0]
+        chart_band = old_chart[1]
+        chart_realized = old_chart[3]
+        chart_dots = old_chart[4]
+
+        # =========================================================
+        # Beat 0 — Carry-over cleanup (~0.6 s)
+        # =========================================================
+        new_title = tex_text(
+            "Spanned-integer approach", font_size=44, color=FOREGROUND,
+        ).to_edge(UP, buff=0.3)
+
+        single_mid_pile = _single_particle_pile(
+            (COARSE_R, MID_R_MID, FINE_R_MID),
+            (ROW_YS[0], ROW_YS[1], ROW_YS[2]),
+            LEFT_X,
         )
 
-        kplus_entries = _kplus_entries(QVEC_X)
-        combined_bracket = _combined_bracket(QVEC_X, ref_width=kplus_entries.width)
-        # Place K_+ label to the LEFT of the bracket at the y-level of the
-        # K_+ entries (upper half) so it stays inside the frame.
-        kplus_label = MathTex("K_+", color=FOREGROUND).scale(1.5).move_to(
-            [QVEC_X - 1.3, ROW_YS[1] + KVEC_Y_OFFSET, 0]
-        )
+        beat0_realized = _stair_curve(axes, PP_BEAT0, FOREGROUND).set_stroke(width=3)
+        beat0_dots = _sieve_dots(axes, PP_BEAT0)
+        beat0_band = _error_band(axes, TARGET_PP, PP_BEAT0)
+        beat0_err_bar = _err_bar(ERR_FRAC_BEAT0)
 
-        axes = chart[0]
-        kplus_curve = _build_realized_curve(PP_KPLUS, axes, MID, width=3)
-        kplus_dots = _sieve_dots(axes, PP_KPLUS).set_color(MID)
-        old_realized = chart[3]
-        old_dots = chart[4]
-        old_band = chart[1]
-
-        err_bar_kplus = _err_bar(ERR_FRAC_KPLUS)
-
-        # ratio_vec is VGroup(LEFT_brace, stack, RIGHT_brace).
-        existing_k_label = getattr(self, "_re_k_label", None)
-        anims = [
-            FadeOut(piles_init),
-            FadeIn(single_hi),
-            Transform(ratio_vec[0], combined_bracket[0]),
-            Transform(ratio_vec[1], kplus_entries),
-            Transform(ratio_vec[2], combined_bracket[1]),
-            Transform(old_realized, kplus_curve),
-            Transform(old_dots, kplus_dots),
-            FadeOut(old_band),
-            Transform(err_bar_init, err_bar_kplus),
+        cleanup = [
+            Transform(title, new_title),
+            FadeOut(old_pile),
+            FadeOut(old_labels),
+            FadeOut(old_arrow),
+            FadeOut(old_rounded_lbl),
+            FadeIn(single_mid_pile),
+            Transform(chart_band, beat0_band),
+            Transform(chart_realized, beat0_realized),
+            Transform(chart_dots, beat0_dots),
+            Transform(old_err_bar, beat0_err_bar),
         ]
-        if existing_k_label is not None:
-            anims.append(Transform(existing_k_label, kplus_label))
-        else:
-            anims.append(FadeIn(kplus_label))
-            self._re_k_label = kplus_label
-        self.play(*anims, run_time=1.5)
+        if old_times_n is not None:
+            cleanup.append(FadeOut(old_times_n))
+        self.play(*cleanup, run_time=0.6)
         self.wait(0.4)
 
-        # ---- Beat 3: K_- entries fill the lower half of the same bracket;
-        # small mid + small fine particles appear at the K_- y-positions
-        # (DOWN), aligned with the K_- numbers. ----
+        # =========================================================
+        # Beat 1 — Particles GROW to K_+ tangent positions (~1.5 s)
+        # =========================================================
+        # K_+ particles tangent to UPPER sieve datum.
+        kplus_pile = _single_particle_pile(
+            (COARSE_R, MID_R_HI, FINE_R_HI),
+            (COARSE_PILE_Y, MID_KPLUS_PILE_Y, FINE_KPLUS_PILE_Y),
+            LEFT_X,
+        )
+        kplus_entries = _kplus_entries()
+        wider_bracket = _wider_bracket(QVEC_X)
+        kplus_label = _kplus_label()
+
+        kplus_curve = _build_realized_curve(PP_KPLUS, axes, MID, width=3)
+        kplus_dots_chart = _sieve_dots(axes, PP_KPLUS).set_color(MID)
+        kplus_err_bar = _err_bar(ERR_FRAC_KPLUS)
+
+        caption_kplus = _build_caption(
+            r"Use the LARGEST size in each range $\to K_+$"
+        )
+
+        beat1_anims = [
+            Transform(single_mid_pile, kplus_pile),
+            Transform(ratio_vec[0], wider_bracket[0]),
+            Transform(ratio_vec[1], kplus_entries),
+            Transform(ratio_vec[2], wider_bracket[1]),
+            Transform(chart_realized, kplus_curve),
+            Transform(chart_dots, kplus_dots_chart),
+            FadeOut(chart_band),
+            Transform(old_err_bar, kplus_err_bar),
+            FadeIn(caption_kplus),
+        ]
+        if existing_k_label is not None:
+            beat1_anims.append(Transform(existing_k_label, kplus_label))
+        else:
+            existing_k_label = kplus_label
+            beat1_anims.append(FadeIn(kplus_label))
+        self.play(*beat1_anims, run_time=1.5)
+        self.wait(0.5)
+
+        # =========================================================
+        # Beat 2 — SHRINK companion: K_- tangent to lower datum (~1.5 s)
+        # =========================================================
+        # K_- particles tangent to LOWER sieve datum.
         small_mid = make_particle(MID_R_LO, MID).move_to(
-            [pile_x, ROW_YS[1] - KVEC_Y_OFFSET, 0]
+            [LEFT_X, MID_KMINUS_PILE_Y, 0]
         )
         small_fine = make_particle(FINE_R_LO, FINE).move_to(
-            [pile_x, ROW_YS[2] - KVEC_Y_OFFSET, 0]
+            [LEFT_X, FINE_KMINUS_PILE_Y, 0]
         )
         small_particles = VGroup(small_mid, small_fine)
 
-        kminus_entries = _kminus_entries(QVEC_X)
-        kminus_label = MathTex("K_-", color=FOREGROUND).scale(1.5).move_to(
-            [QVEC_X - 1.3, ROW_YS[2] - KVEC_Y_OFFSET, 0]
+        kminus_entries = _kminus_entries()
+        kminus_label = _kminus_label()
+
+        kminus_curve = _build_realized_curve(PP_KMINUS, axes, COARSE, width=3)
+        kminus_dots_chart = _sieve_dots(axes, PP_KMINUS).set_color(COARSE)
+        kminus_err_bar = _err_bar(ERR_FRAC_KMINUS)
+
+        caption_kminus = _build_caption(
+            r"Use the SMALLEST size $\to K_-$"
         )
 
-        err_bar_kminus = _err_bar(ERR_FRAC_KMINUS)
-
-        # K_- realized curve on the chart.
-        kminus_curve = _build_realized_curve(PP_KMINUS, axes, COARSE, width=3)
-        kminus_dots = _sieve_dots(axes, PP_KMINUS).set_color(COARSE)
-
         self.play(
+            FadeOut(caption_kplus),
+            FadeIn(small_particles),
             FadeIn(kminus_entries),
             FadeIn(kminus_label),
-            FadeIn(small_particles),
             FadeIn(kminus_curve),
-            FadeIn(kminus_dots),
-            Transform(err_bar_init, err_bar_kminus),
-            run_time=1.6,
+            FadeIn(kminus_dots_chart),
+            Transform(old_err_bar, kminus_err_bar),
+            FadeIn(caption_kminus),
+            run_time=1.5,
         )
         self.wait(0.6)
 
-        # Stash for the SpannedIntegerError handoff.
+        # =========================================================
+        # Beat 3 — STANDALONE BINGO reveal (~2 s)
+        # NOTHING else moves on screen during this beat.
+        # =========================================================
+        coarse_y, mid_y, fine_y = _spanned_integer_y_positions()
+
+        coarse_int = tex_text(
+            str(SPANNED_INTEGERS_DISPLAY[0]), font_size=INTEGER_FONT, color=YELLOW,
+        ).move_to([SPAN_X, coarse_y, 0])
+        mid_int = tex_text(
+            str(SPANNED_INTEGERS_DISPLAY[1]), font_size=INTEGER_FONT, color=YELLOW,
+        ).move_to([SPAN_X, mid_y, 0])
+        fine_int = tex_text(
+            str(SPANNED_INTEGERS_DISPLAY[2]), font_size=INTEGER_FONT, color=YELLOW,
+        ).move_to([SPAN_X, fine_y, 0])
+        integers = VGroup(coarse_int, mid_int, fine_int)
+
+        caption_bingo = _build_caption(
+            "A whole number is between them!", big=True, color=YELLOW,
+        )
+
+        # First fade out the prior caption on its own.
+        self.play(FadeOut(caption_kminus), run_time=0.3)
+
+        # Pop integers (0.6x -> 1.4x -> 1.0x) in two short plays. The notes
+        # require this beat to land alone — do NOT couple to the merge.
+        for integer in integers:
+            integer.scale(0.6)
+            integer.set_opacity(0)
+        self.add(integers)
+        self.play(
+            FadeIn(caption_bingo),
+            *[integer.animate.set_opacity(1).scale(1.4 / 0.6)
+              for integer in integers],
+            run_time=0.35,
+        )
+        self.play(
+            *[integer.animate.scale(1.0 / 1.4) for integer in integers],
+            run_time=0.2,
+        )
+        self.wait(2.0)  # let the audience feel the click
+
+        # ---- Stash everything Beat 4 / 5 will need. ----
         self.title_mob = title
-        self.large_pile = single_hi
+        self.large_pile = single_mid_pile  # has been transformed to kplus_pile
         self.small_particles = small_particles
-        self.chart_mob = chart
-        self.kplus_curve = old_realized  # transformed to kplus_curve
-        self.kplus_dots = old_dots
+        self.chart_mob = old_chart
+        self.kplus_curve = chart_realized   # transformed to kplus_curve
+        self.kplus_dots = chart_dots        # transformed to kplus_dots
         self.kminus_curve = kminus_curve
-        self.kminus_dots = kminus_dots
-        self.err_frame_mob = err_frame
-        self.err_bar_mob = err_bar_init
-        self.pile_x = pile_x
+        self.kminus_dots = kminus_dots_chart
+        self.err_bar_mob = old_err_bar
+        self.integers_mob = integers
+        self.caption_bingo_mob = caption_bingo
+        self.kplus_label_mob = existing_k_label  # transformed to K_+
+        self.kminus_label_mob = kminus_label
+        self.kplus_entries_mob = ratio_vec[1]   # transformed to kplus_entries
+        self.kminus_entries_mob = kminus_entries
+        self.bracket_mob = VGroup(ratio_vec[0], ratio_vec[2])
+        self.pile_x = LEFT_X
+
+
+class SpannedIntegerCombined(Scene):
+    """Approach + Error combined into one scene — useful when rendering as
+    a single standalone clip (e.g. for the per-scene revealjs slideshow)."""
+    def construct(self):
+        SpannedIntegerApproach.construct(self)
+        SpannedIntegerError.construct(self)
 
 
 class SpannedIntegerError(Scene):
     def construct(self):
-        # Pulls everything from the previous scene's stash via shared `self`
-        # when stitched in FullStory. Otherwise (standalone) renders a brief
-        # static MDM result.
+        # Standalone fallback: just label the result.
         if not getattr(self, "title_mob", None):
-            # Standalone fallback: just label the result.
             label = tex_text(
-                "Minimal Discrete Match",
-                font_size=44,
-                color=COARSE,
+                "Minimal Discrete Match", font_size=44, color=COARSE,
             )
             self.play(Write(label), run_time=0.7)
             self.wait(2.0)
             return
 
-        # ---- Beat 4: spanned-integer reveal: large+small particles in each
-        # tier merge into a single intermediate-size particle whose size is
-        # proportional to where the integer falls between K_+ and K_-.
-        # Realized curve hits target, error → 0. ----
         title = self.title_mob
         chart = self.chart_mob
         axes = chart[0]
         large_pile = self.large_pile
         small_particles = self.small_particles
         pile_x = self.pile_x
+        caption_bingo = self.caption_bingo_mob
 
-        # Merged particles: y position interpolated proportionally between
-        # K_+ (high) and K_- (low) by the integer's position in the span.
-        mid_frac = float(np.clip((SPANNED_INTEGERS_DISPLAY[1] - K_PLUS[1]) /
-                                 max(K_MINUS[1] - K_PLUS[1], 1e-9), 0, 1))
-        fine_frac = float(np.clip((SPANNED_INTEGERS_DISPLAY[2] - K_PLUS[2]) /
-                                  max(K_MINUS[2] - K_PLUS[2], 1e-9), 0, 1))
-        mid_merged_y = ROW_YS[1] + KVEC_Y_OFFSET + mid_frac * (-2 * KVEC_Y_OFFSET)
-        fine_merged_y = ROW_YS[2] + KVEC_Y_OFFSET + fine_frac * (-2 * KVEC_Y_OFFSET)
+        coarse_y, mid_y, fine_y = _spanned_integer_y_positions()
 
-        merged_mid = make_particle(MID_R_SPAN, MID).move_to([pile_x, mid_merged_y, 0])
-        merged_fine = make_particle(FINE_R_SPAN, FINE).move_to([pile_x, fine_merged_y, 0])
+        # =========================================================
+        # Beat 4 — Resolution (~1.5 s)
+        # =========================================================
+        merged_mid = make_particle(MID_R_SPAN, MID).move_to([pile_x, mid_y, 0])
+        merged_fine = make_particle(FINE_R_SPAN, FINE).move_to([pile_x, fine_y, 0])
 
-        # Spanned-integer column between the particle stack and the chart.
-        span_x = 0.5
-        span_title = tex_text("Spanned\nintegers", font_size=24, color=COARSE).move_to(
-            [span_x, ROW_YS[0] + 1.0, 0]
-        )
-        span_labels = VGroup(
-            tex_text("1", font_size=78, color=COARSE).move_to([span_x, ROW_YS[0], 0]),
-            tex_text("5", font_size=78, color=MID).move_to([span_x, mid_merged_y, 0]),
-            tex_text("12", font_size=78, color=FINE).move_to([span_x, fine_merged_y, 0]),
-        )
-        span_anchor = Rectangle(
-            width=span_labels.width + 0.3,
-            height=ROW_YS[0] - ROW_YS[-1] + 2 * KVEC_Y_OFFSET + 0.3,
-            stroke_opacity=0,
-            fill_opacity=0,
-        ).move_to([span_x, 0, 0])
-        span_brace = VGroup(Brace(span_anchor, LEFT), Brace(span_anchor, RIGHT))
-
-        # Realized curve becomes the target (zero error).
         target_overlay = _smooth_curve(axes, TARGET_PP).set_stroke(
             color=FOREGROUND, width=4
         )
-        target_dots = _sieve_dots(axes, TARGET_PP).set_color(WHITE)
+        # Place dots ON the smoothed curve (not at raw TARGET_PP) so the
+        # mid + fine dots visibly land on the target line — "error → 0".
+        target_dots = _sieve_dots(axes, smoothed_pp_at_sieves(TARGET_PP)).set_color(WHITE)
         err_bar_zero = _err_bar(ERR_FRAC_SPANNED)
 
-        # Move the large mid → merged_mid position/size; small mid → same
-        # target. Same for fine.
+        caption_resolved = _build_caption(
+            r"\dots the right size exists. Error $\to 0$."
+        )
+
+        # FadeOut + FadeIn for the curves rather than Transform: the K+/K-
+        # stair curves (4 control points) and the target overlay (80 points)
+        # have very different topologies, and Transform produces transient
+        # path artifacts during interpolation.
         self.play(
-            # Merge mid pair.
+            # Merge mid pair → single intermediate-size mid particle.
             Transform(large_pile[1], merged_mid),
             Transform(small_particles[0], merged_mid.copy()),
-            # Merge fine pair.
+            # Merge fine pair → single intermediate-size fine particle.
             Transform(large_pile[2], merged_fine),
             Transform(small_particles[1], merged_fine.copy()),
-            # Bring spanned integer column in.
-            FadeIn(span_brace),
-            FadeIn(span_labels),
-            Write(span_title),
-            # Chart: realized → target, error band → 0.
-            Transform(self.kplus_curve, target_overlay),
-            Transform(self.kminus_curve, target_overlay.copy()),
+            # Both realized curves fade out; target curve appears.
+            FadeOut(self.kplus_curve),
+            FadeOut(self.kminus_curve),
+            FadeIn(target_overlay),
             FadeOut(self.kplus_dots),
             FadeOut(self.kminus_dots),
             FadeIn(target_dots),
+            # Error bar -> 0.
             Transform(self.err_bar_mob, err_bar_zero),
-            run_time=1.8,
+            # Swap caption.
+            FadeOut(caption_bingo),
+            FadeIn(caption_resolved),
+            run_time=1.5,
         )
         self.wait(0.6)
 
-        # ---- Beat 5: MDM box + label. ----
-        # Box hugs just the merged pile and the spanned-integer column;
-        # avoids stretching across the K-vector or the chart's y-axis.
-        box_left = pile_x - 0.7
-        box_right = span_x + 0.7
-        box_top = ROW_YS[0] + 0.6
-        box_bot = ROW_YS[-1] - 0.6
+        # =========================================================
+        # Beat 5 — MDM box; fade K_+/K_- vector + labels (hold for outro)
+        # =========================================================
+        # Box wraps the spanned-integer column + merged-particle column.
+        box_left = SPAN_X - 0.5
+        box_right = pile_x + 0.7
+        box_top = ROW_YS[0] + 0.55
+        box_bot = ROW_YS[-1] - 0.15
         box = Rectangle(
             width=box_right - box_left,
             height=box_top - box_bot,
@@ -491,10 +623,29 @@ class SpannedIntegerError(Scene):
             stroke_width=3,
         ).move_to([(box_left + box_right) / 2, (box_top + box_bot) / 2, 0])
         mdm_label = tex_text(
-            "Minimal Discrete Match",
-            font_size=38,
-            color=COARSE,
-        ).next_to(box, DOWN, buff=0.25)
+            "Minimal Discrete Match", font_size=38, color=COARSE,
+        ).move_to([(box_left + box_right) / 2, -3.2, 0])
 
-        self.play(FadeIn(box), Write(mdm_label), run_time=1.0)
-        self.wait(5.0)
+        # Total particle count (1 + 5 + 12 = 18) — the "number of particles
+        # needed to represent the MDM".
+        n_total = sum(SPANNED_INTEGERS_DISPLAY)
+        total_label = MathTex(
+            rf"N_{{\mathrm{{total}}}} = {n_total}",
+            color=FOREGROUND,
+        ).scale(0.9).next_to(mdm_label, DOWN, buff=0.2)
+
+        self.play(
+            FadeOut(caption_resolved),
+            # Fade the K vector, its bracket, and both K labels — the
+            # algorithm has resolved; only the MDM matters from here.
+            FadeOut(self.kplus_entries_mob),
+            FadeOut(self.kminus_entries_mob),
+            FadeOut(self.bracket_mob),
+            FadeOut(self.kplus_label_mob),
+            FadeOut(self.kminus_label_mob),
+            FadeIn(box),
+            Write(mdm_label),
+            Write(total_label),
+            run_time=1.0,
+        )
+        self.wait(4.5)
