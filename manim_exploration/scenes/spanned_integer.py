@@ -89,6 +89,7 @@ from rounding import (
     LEFT_X,
     NUM_LABEL_X,
     PILE_BAND_HEIGHT,
+    PILE_X_RANGE,
     QVEC_X,
     ROW_YS,
     SIEVE_XS,
@@ -566,8 +567,25 @@ class SpannedIntegerError(Scene):
         # =========================================================
         # Beat 4 — Resolution (~1.5 s)
         # =========================================================
-        merged_mid = make_particle(MID_R_SPAN, MID).move_to([pile_x, mid_y, 0])
-        merged_fine = make_particle(FINE_R_SPAN, FINE).move_to([pile_x, fine_y, 0])
+        # MDM pile: actual integer counts (1 coarse, 5 mid, 12 fine) at
+        # intermediate (spanned) sizes, scattered in their respective bands.
+        mdm_rng = np.random.default_rng(91)
+        mid_band = (DATUM_MID_FINE, DATUM_COARSE_MID)
+        fine_band = (DATUM_BOT, DATUM_MID_FINE)
+        coarse_band = (DATUM_COARSE_MID, DATUM_TOP)
+        mdm_coarse = scatter_in_band(
+            SPANNED_INTEGERS_DISPLAY[0], COARSE_R, COARSE,
+            coarse_band, PILE_X_RANGE, mdm_rng,
+        )
+        mdm_mid = scatter_in_band(
+            SPANNED_INTEGERS_DISPLAY[1], MID_R_SPAN, MID,
+            mid_band, PILE_X_RANGE, mdm_rng,
+        )
+        mdm_fine = scatter_in_band(
+            SPANNED_INTEGERS_DISPLAY[2], FINE_R_SPAN, FINE,
+            fine_band, PILE_X_RANGE, mdm_rng,
+        )
+        mdm_pile = VGroup(mdm_coarse, mdm_mid, mdm_fine)
 
         target_overlay = _smooth_curve(axes, TARGET_PP).set_stroke(
             color=FOREGROUND, width=4
@@ -581,17 +599,16 @@ class SpannedIntegerError(Scene):
             r"\dots the right size exists. Error $\to 0$."
         )
 
-        # FadeOut + FadeIn for the curves rather than Transform: the K+/K-
-        # stair curves (4 control points) and the target overlay (80 points)
-        # have very different topologies, and Transform produces transient
-        # path artifacts during interpolation.
+        # The K_+/K_- pair fades out; the MDM pile (matching counts 1, 5, 12)
+        # fades in. FadeOut + FadeIn for the curves rather than Transform:
+        # the K+/K- stair curves (4 control points) and the target overlay
+        # (80 points) have very different topologies, and Transform produces
+        # transient path artifacts during interpolation.
         self.play(
-            # Merge mid pair → single intermediate-size mid particle.
-            Transform(large_pile[1], merged_mid),
-            Transform(small_particles[0], merged_mid.copy()),
-            # Merge fine pair → single intermediate-size fine particle.
-            Transform(large_pile[2], merged_fine),
-            Transform(small_particles[1], merged_fine.copy()),
+            # K_+/K_- particles fade out, MDM pile fades in.
+            FadeOut(large_pile),
+            FadeOut(small_particles),
+            FadeIn(mdm_pile),
             # Both realized curves fade out; target curve appears.
             FadeOut(self.kplus_curve),
             FadeOut(self.kminus_curve),
@@ -607,15 +624,19 @@ class SpannedIntegerError(Scene):
             run_time=1.5,
         )
         self.wait(0.6)
+        # Stash so Beat 5 box can size around it.
+        self.mdm_pile_mob = mdm_pile
 
         # =========================================================
         # Beat 5 — MDM box; fade K_+/K_- vector + labels (hold for outro)
         # =========================================================
-        # Box wraps the spanned-integer column + merged-particle column.
+        # Box wraps the spanned-integer column + multi-particle MDM pile.
+        # Pile spans full sieve stack (coarse band top to fine band bottom),
+        # so the box has to grow to enclose those scatter regions.
         box_left = SPAN_X - 0.5
-        box_right = pile_x + 0.7
-        box_top = ROW_YS[0] + 0.55
-        box_bot = ROW_YS[-1] - 0.15
+        box_right = pile_x + 0.9
+        box_top = DATUM_TOP + 0.05
+        box_bot = DATUM_BOT - 0.1
         box = Rectangle(
             width=box_right - box_left,
             height=box_top - box_bot,

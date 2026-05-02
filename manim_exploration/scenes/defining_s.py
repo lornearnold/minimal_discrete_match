@@ -24,7 +24,6 @@ from manim import (
     MathTex,
     Rectangle,
     Scene,
-    Text,
     Transform,
     VGroup,
     Write,
@@ -41,6 +40,7 @@ from _common import (
     MID,
     MID_R,
     scatter_in_band,
+    tex_text,
 )
 from pile_to_gsd import (
     COARSE_BAND,
@@ -64,9 +64,9 @@ SUBSETS = [
 
 class DefiningS(Scene):
     def construct(self):
-        title = Text(
-            "Many sets of particles (S) are compatible with G",
-            font_size=28,
+        title = tex_text(
+            "Many possible sets of particles (S) are compatible with G",
+            font_size=36,
             color=FOREGROUND,
         ).to_edge(UP, buff=0.35)
 
@@ -86,7 +86,7 @@ class DefiningS(Scene):
         right_brace = Brace(brace_anchor, RIGHT)
 
         # Prominent S, sitting clear of the right brace + per-band labels.
-        s_label = Text("S", font_size=110, color=WHITE).move_to([4.6, 0.6, 0])
+        s_label = tex_text("S", font_size=140, color=WHITE).move_to([4.6, 0.6, 0])
         n_counter = MathTex("N = ?", color=WHITE).scale(1.1).next_to(
             s_label, DOWN, buff=0.35
         )
@@ -108,13 +108,13 @@ class DefiningS(Scene):
             piles = VGroup(coarse, mid, fine)
 
             labels = VGroup(
-                Text(str(nc), font_size=84, color=COARSE).move_to(
+                tex_text(str(nc), font_size=104, color=COARSE).move_to(
                     [PILE_X[1] + 1.5, sum(COARSE_BAND) / 2, 0]
                 ),
-                Text(str(nm), font_size=84, color=MID).move_to(
+                tex_text(str(nm), font_size=104, color=MID).move_to(
                     [PILE_X[1] + 1.5, sum(MID_BAND) / 2, 0]
                 ),
-                Text(str(nf), font_size=84, color=FINE).move_to(
+                tex_text(str(nf), font_size=104, color=FINE).move_to(
                     [PILE_X[1] + 1.5, sum(FINE_BAND) / 2, 0]
                 ),
             )
@@ -140,13 +140,13 @@ class DefiningS(Scene):
         # ---- Final beat: one coarse particle, scattered "?"s in mid/fine. ----
         rng = np.random.default_rng(99)
         single_labels = VGroup(
-            Text("1", font_size=84, color=COARSE).move_to(
+            tex_text("1", font_size=104, color=COARSE).move_to(
                 [numbers_x, sum(COARSE_BAND) / 2, 0]
             ),
-            Text("?", font_size=84, color=MID).move_to(
+            tex_text("?", font_size=104, color=MID).move_to(
                 [numbers_x, sum(MID_BAND) / 2, 0]
             ),
-            Text("?", font_size=84, color=FINE).move_to(
+            tex_text("?", font_size=104, color=FINE).move_to(
                 [numbers_x, sum(FINE_BAND) / 2, 0]
             ),
         )
@@ -156,21 +156,21 @@ class DefiningS(Scene):
             for _ in range(n):
                 x = rng.uniform(PILE_X[0] + 0.3, PILE_X[1] - 0.3)
                 y = rng.uniform(band[0] + 0.2, band[1] - 0.2)
-                qs.add(Text("?", font_size=font_size, color=color).move_to([x, y, 0]))
+                qs.add(tex_text("?", font_size=font_size, color=color).move_to([x, y, 0]))
             return qs
 
         single = VGroup(
             scatter_in_band(1, COARSE_R, COARSE, COARSE_BAND, PILE_X, rng),
-            _band_questions(5, MID, MID_BAND, font_size=36),
-            _band_questions(8, FINE, FINE_BAND, font_size=28),
+            _band_questions(5, MID, MID_BAND, font_size=46),
+            _band_questions(8, FINE, FINE_BAND, font_size=36),
             single_labels,
         )
         n_mdm = MathTex(r"N_{\mathrm{MDM}} = \, ?", color=WHITE).scale(1.4).next_to(
             s_label, DOWN, buff=0.35
         )
-        mdm_caption = Text(
+        mdm_caption = tex_text(
             "S with the least particles is\nthe Minimal Discrete Match",
-            font_size=22,
+            font_size=28,
             color=FOREGROUND,
         ).move_to([s_label.get_center()[0], 2.5, 0])
 

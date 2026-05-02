@@ -17,39 +17,66 @@ Order  (target durations at ~190 wpm)
    - problem: only one entry is guaranteed to be an integer
  - error — ~9 s (rounding) + ~19 s (spanned integer)
 
+  ┌─────┬────────────────────────┬────────────────────────────────────────┐          
+  │  #  │      Scene class       │                  File                  │          
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 1   │ SieveStack             │ sieve_stack.py                         │          
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 2   │ PileToGSD              │ pile_to_gsd.py (seamless from #1)      │
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 3   │ DefiningG              │ continuum_reveal.py (seamless from #2) │
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 4   │ DefiningS              │ defining_s.py                          │        
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 5   │ MassRatios             │ ratios.py                              │        
+  ├─────┼────────────────────────┼────────────────────────────────────────┤
+  │ 6   │ VolumeRatios           │ ratios.py                              │
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 7   │ QuantityRatio          │ quantity_ratio.py                      │
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 8   │ ReducingError          │ rounding.py (seamless from #7)         │        
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 9   │ SpannedIntegerApproach │ spanned_integer.py (seamless from #8)  │
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 10  │ SpannedIntegerError    │ spanned_integer.py (seamless from #9)  │        
+  ├─────┼────────────────────────┼────────────────────────────────────────┤          
+  │ 11  │ Verification           │ verification.py                        │        
+  └─────┴────────────────────────┴────────────────────────────────────────┘          
 
 
-# script  (timing assumes ~190 wpm ≈ 3.17 words/sec)
 
-[intro — 41 words ≈ 13 s]
+# script   
+
+[SieveStack — 12 s]
 When faced with a soil mechanics problem, we may need to simulate the soil itself. The problem with this is we can't individually measure all the particles, and even if we could, there would be far too many particles to simulate. 
 
-[sieve stack — 20 words ≈ 7 s]
+[PileToGSD  — 6 s]
 To help with this, we can use sieves to find the weight of all the grains within a certain diameter. 
 
-[continuum reveal / defining G — 41 words ≈ 13 s]
+[DefiningG  — 15 s]
 This curve describes the mass distribution of the sample's grain sizes, which we will call "G." We can use this as a baseline to find a set of particles to simulate - we will try to find a solution that satisfies G. 
 
-[defining S — 33 words ≈ 10 s]
+[DefiningS — 16 s]
 There are many sets of particles (or "S") that are compatible "G," but we are interested in finding the one with the fewest particles. We call this solution the Minimal Discrete Match. (MDM)
-
-[ratios intro — 11 words ≈ 4 s]
 To find the MDM, it is helpful to have some ratios.
 
-[mass ratio — 18 words ≈ 6 s]
+[MassRatios  — 6 s]
 We can calculate the ratios of mass by dividing each mass by the mass of the biggest grains.
 
-[volume ratio — 45 words ≈ 14 s]
+[VolumeRatios  — 15 s]
 Similarly, we can find volume ratios by comparing the volume of a representative grain from each size range to the volume of the largest grain. Since we get to choose which grain represents each range, these ratios aren't locked in — we can adjust them later.
 
-[quantity ratio — 30 words ≈ 10 s]
+[QuantityRatio — 11 s]
 By multiplying these ratios, we get quantity ratios - or ratios of how many particles are in each size range. The problem now becomes finding an integer solution to these ratios.
 
-[rounding — 26 words ≈ 9 s]
+[ReducingError — 10 s]
 We can now write an algorithm to find an integer solution by duplicating and rounding the quantity ratio until we fall under our margin of error. 
+[pause 3 seconds]
 
-[spanned integer / outro — 58 words ≈ 19 s]
-This approach uses only fixed volume ratios, but we can utilize the ability to change them to find a smaller solution. We can calculate a range of quantity ratios and find an integer number of particles falls between them. Using this new algorithm, we can accurately predict the number of particles needed to build models of real-world soil.
+[SpannedIntegerError — 15 s]
+This approach uses only fixed volume ratios, but we can utilize the ability to change them to find a smaller solution. We can calculate a range of quantity ratios and find an integer number of particles falls between them. 
 
-Total narration: 323 words → ~102 s (~1:42) at 190 wpm.
+[Verification - 5 s]
+Using this new algorithm, we can accurately predict the number of particles needed to build models of real-world soil.
+
 
