@@ -81,5 +81,7 @@ We tested the spanned integer algorithm against the number of particles reported
 Our predictions matched the reported numbers of scaled up simulations with thousands to millions of particles.
 We can also predict the minimum number of particles it would take to build 1:1 models of real-world soil.
 
+More details will be available in our forthcoming paper in the proceedings of the International Conference on Soil Mechanics and Geotechnical Engineering
+
 
 
