@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(marimo check *)",
+      "Bash(timeout 8 marimo run mdm_notebook.py --headless --port 12345)",
+      "Bash(curl -s http://localhost:12345/ -o /dev/null -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(marimo edit *)",
+      "Bash(bash /Users/lornearnold/.claude/plugins/cache/marimo-pair/marimo-pair/e9258d5e7195/scripts/discover-servers.sh)",
+      "Bash(bash *)",
+      "Bash(curl -s http://localhost:2719/api/sessions)",
+      "Bash(curl -s http://localhost:2720/api/sessions)",
+      "Bash(EOF)",
+      "Bash(ps -p 26215 -o pid,state,pcpu,pmem,etime,command)",
+      "Bash(xargs -I{} ps -p {} -o pid,state,pcpu,pmem,etime,command)",
+      "Bash(pip3 show *)",
+      "Bash(uvx py-spy *)",
+      "Bash(kill -9 58185)",
+      "Bash(ps -p 58185 -o pid,state)",
+      "WebSearch",
+      "WebFetch(domain:docs.marimo.io)",
+      "WebFetch(domain:molab.marimo.io)",
+      "WebFetch(domain:koaning.github.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s https://api.github.com/repos/koaning/wigglystuff/contents/wigglystuff)"
+    ]
+  }
+}
