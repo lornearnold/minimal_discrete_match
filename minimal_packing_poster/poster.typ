@@ -217,16 +217,10 @@
       #h1[GSD study suite]
       #lorem-para
 
-      #figure(
-        image("assets/figures/figure4_phi_n.png", width: 100%),
-        caption: none,
-      )
-      #fig-cap(2)[Particles in the minimal discrete match #math.italic("N_MDM")
-        as a function of mass ratio #math.italic("φ_1"), colored by the
-        log-volume ratio #math.italic("ζ_1").]
+
 
       #h1[Minimal discrete match solution]
-      #lorem-para
+   
 
       #lorem-short
 
@@ -238,10 +232,24 @@
         spanned-integer algorithms across the GSD suite.]
 
       #h1[Results]
-      #lorem-para
+      #lorem-short
+
+      #figure(
+        image("assets/figures/figure3_demo_comparison.png", width: 100%),
+        caption: none,
+      )
+      #fig-cap(3)[Convergence of discrete match error for the fixed-size and
+        spanned-integer algorithms across the GSD suite.]
 
       #h1[Discussion]
       #lorem-short
+
+      #figure(
+        image("assets/figures/figure6_uscs_n.png", width: 100%),
+        caption: none,
+      )
+      #fig-cap(3)[Convergence of discrete match error for the fixed-size and
+        spanned-integer algorithms across the GSD suite.]
 
       #h1[Conclusions]
       #lorem-short
