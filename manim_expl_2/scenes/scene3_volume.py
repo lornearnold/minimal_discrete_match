@@ -166,13 +166,18 @@ class VolumeRatios(Scene):
         )
 
         # Storyboard order: tier particles (denominators) first, then slash,
-        # then coarse numerator.
-        for den in denominators:
+        # then coarse numerator. The ⋮ glyph rides with the first denominator
+        # (not with the math operation).
+        self.play(
+            FadeIn(denominators[0], shift=DOWN * 0.1),
+            Write(sieve_dots),
+            run_time=0.45,
+        )
+        for den in denominators[1:]:
             self.play(FadeIn(den, shift=DOWN * 0.1), run_time=0.30)
         self.play(*[Create(sl) for sl in slashes], run_time=0.5)
         for num in numerators:
             self.play(FadeIn(num, shift=DOWN * 0.1), run_time=0.30)
-        self.play(Write(sieve_dots), run_time=0.4)
 
         self.play(
             FadeIn(vector[0]),

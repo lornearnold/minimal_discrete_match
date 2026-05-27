@@ -64,22 +64,24 @@ config.background_color = BACKGROUND
 
 
 # Scene 4 column positions (spread across the full frame width).
+# The volume figure was pulled in by 0.1 and EQ moved further left from
+# the K vector to remove the brace/equals overlap.
 MASS_PILE_X = -5.5
-MASS_SLASH_X = -3.8
+MASS_SLASH_X = -3.9
 MASS_DENOM_X = -2.5
-TIMES_X = -1.4
+TIMES_X = -1.1
 VOL_COARSE_X = -0.4
 VOL_SLASH_X = 0.6
 VOL_TIER_X = 1.6
-EQ_X = 2.4
-KVEC_X = 3.5
-NON_INT_X = 5.4
+EQ_X = 2.3
+KVEC_X = 3.7
+NON_INT_X = 5.5
 
-LINE_X_LO_S4 = -6.5
+LINE_X_LO_S4 = -6.7
 LINE_X_HI_S4 = 2.0
 
 # Volume figure x-shift when transitioning from Scene 3 (NUMER_X=-1.4,
-# SLASH_X=-0.4, TIER_X=0.6) into Scene 4. Each Scene-3 column moves +1.0.
+# SLASH_X=-0.4, TIER_X=0.6) into Scene 4 (-0.4, 0.6, 1.6). +1.0 each.
 VOL_SLIDE_RIGHT = 1.0
 
 
@@ -110,15 +112,19 @@ class QuantityRatios(Scene):
         from_scene3 = bool(getattr(self, "_from_scene3", False))
 
         title = tex_text(
-            "Quantity Ratios", font_size=40, color=FOREGROUND
-        ).to_corner(UP + LEFT, buff=0.35)
+            "Quantity Ratios", font_size=44, color=FOREGROUND
+        ).to_edge(UP, buff=0.35)
 
         # ---- Mass figure pile specs (3 rows + dots) ------------------
-        # (line_y, row_y, num_width, num_height, color, label)
+        # Smaller widths than Scene 2 to fit alongside the volume figure,
+        # but SAME heights so the piles rest on the shared DASHED/SOLID lines.
+        # The M_N denominator on every row is exactly the same shape AND
+        # size as the M_N numerator in the top row.
+        MN_W_S4 = 1.45
         mass_specs = [
-            (DASHED_YS[0], ROW_YS[0], 1.65, PILE_HEIGHTS["M_N"], COARSE, r"M_N"),
-            (DASHED_YS[1], ROW_YS[1], 1.35, PILE_HEIGHTS["M_N-1"], MID, r"M_{N-1}"),
-            (SOLID_Y, ROW_YS[3], 1.85, PILE_HEIGHTS["M_1"], FINE, r"M_1"),
+            (DASHED_YS[0], ROW_YS[0], MN_W_S4, PILE_HEIGHTS["M_N"], COARSE, r"M_N"),
+            (DASHED_YS[1], ROW_YS[1], 1.20, PILE_HEIGHTS["M_N-1"], MID, r"M_{N-1}"),
+            (SOLID_Y, ROW_YS[3], 1.65, PILE_HEIGHTS["M_1"], FINE, r"M_1"),
         ]
         mass_nums = VGroup()
         mass_dens = VGroup()
@@ -128,10 +134,9 @@ class QuantityRatios(Scene):
             num.shift([MASS_PILE_X, line_y, 0])
             mass_nums.add(num)
 
-            # M_N pile as denominator on every row (smaller than full size).
-            den = mountain_pile(
-                1.20, PILE_HEIGHTS["M_N"] * 0.85, COARSE, r"M_N"
-            )
+            # M_N pile as denominator — EXACTLY the same as the M_N
+            # numerator in the top row (same width, height, color, label).
+            den = mountain_pile(MN_W_S4, PILE_HEIGHTS["M_N"], COARSE, r"M_N")
             den.shift([MASS_DENOM_X, line_y, 0])
             mass_dens.add(den)
 
@@ -141,16 +146,14 @@ class QuantityRatios(Scene):
             mass_slashes.add(sl)
 
         DOT_SCALE = 1.2
+        # One ⋮ in the mass-numerator column (no dots in the denominator or
+        # × columns — those are math-op columns).
         mass_num_dots = (
             MathTex(r"\vdots", color=FOREGROUND).scale(DOT_SCALE)
             .move_to([MASS_PILE_X, ROW_YS[2], 0])
         )
-        mass_den_dots = (
-            MathTex(r"\vdots", color=FOREGROUND).scale(DOT_SCALE)
-            .move_to([MASS_DENOM_X, ROW_YS[2], 0])
-        )
 
-        # ---- × symbols (per row + dots) ------------------------------
+        # ---- × symbols (per row, no dots column) ---------------------
         times_marks = VGroup(
             *[
                 MathTex(r"\times", color=FOREGROUND).scale(1.1).move_to(
@@ -158,10 +161,6 @@ class QuantityRatios(Scene):
                 )
                 for i in (0, 1, 3)
             ]
-        )
-        times_dots = (
-            MathTex(r"\vdots", color=FOREGROUND).scale(DOT_SCALE)
-            .move_to([TIMES_X, ROW_YS[2], 0])
         )
 
         # ---- Volume figure (built or slid in from Scene 3) -----------
@@ -301,25 +300,29 @@ class QuantityRatios(Scene):
             anims.append(Transform(self._solid_line, new_solid_line))
             self.play(*anims, run_time=1.4)
 
-            # Bring up Scene 4 title and mass figure.
+            # Bring up Scene 4 title and mass figure. The ⋮ glyph appears
+            # alongside the first mass pile (not with the math operation).
             self.play(Write(title), run_time=0.5)
             self.play(
-                *[FadeIn(p, shift=DOWN * 0.15) for p in mass_nums],
-                run_time=0.7,
+                FadeIn(mass_nums[0], shift=DOWN * 0.15),
+                Write(mass_num_dots),
+                run_time=0.5,
             )
+            self.play(
+                *[FadeIn(p, shift=DOWN * 0.15) for p in mass_nums[1:]],
+                run_time=0.55,
+            )
+            # Math op: slashes + denominator piles (no dots in this beat).
             self.play(
                 *[Create(sl) for sl in mass_slashes],
                 *[FadeIn(d, shift=DOWN * 0.1) for d in mass_dens],
-                Write(mass_num_dots),
-                Write(mass_den_dots),
                 run_time=0.8,
             )
             self.play(Write(phi_label), run_time=0.4)
 
-            # × symbols and dots.
+            # × symbols.
             self.play(
                 *[Write(t) for t in times_marks],
-                Write(times_dots),
                 run_time=0.6,
             )
 
@@ -345,26 +348,37 @@ class QuantityRatios(Scene):
                 Create(solid_line),
                 run_time=0.7,
             )
+            # Mass numerators + ⋮ together (mass column).
             self.play(
-                *[FadeIn(p, shift=DOWN * 0.1) for p in mass_nums],
-                run_time=0.6,
+                FadeIn(mass_nums[0], shift=DOWN * 0.1),
+                Write(mass_num_dots),
+                run_time=0.5,
+            )
+            self.play(
+                *[FadeIn(p, shift=DOWN * 0.1) for p in mass_nums[1:]],
+                run_time=0.5,
             )
             self.play(
                 *[Create(sl) for sl in mass_slashes],
                 *[FadeIn(d, shift=DOWN * 0.08) for d in mass_dens],
-                Write(mass_num_dots),
-                Write(mass_den_dots),
                 run_time=0.7,
             )
             self.play(Write(phi_label), run_time=0.4)
+            # Volume figure + its ⋮ (ride with the first volume element).
             self.play(
                 *[Write(t) for t in times_marks],
-                Write(times_dots),
-                *[FadeIn(n, shift=DOWN * 0.1) for n in vol_nums],
-                *[FadeIn(d, shift=DOWN * 0.1) for d in vol_dens],
-                *[Create(sl) for sl in vol_slashes],
+                FadeIn(vol_dens[0], shift=DOWN * 0.1),
                 Write(vol_dots),
-                run_time=0.9,
+                run_time=0.7,
+            )
+            self.play(
+                *[FadeIn(d, shift=DOWN * 0.1) for d in vol_dens[1:]],
+                run_time=0.4,
+            )
+            self.play(
+                *[Create(sl) for sl in vol_slashes],
+                *[FadeIn(n, shift=DOWN * 0.1) for n in vol_nums],
+                run_time=0.6,
             )
             self.play(Write(z_label), run_time=0.4)
             self.play(

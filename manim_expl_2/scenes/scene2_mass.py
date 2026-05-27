@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import numpy as np
 from manim import (
+    BLACK,
     DOWN,
     LEFT,
     RIGHT,
@@ -50,11 +51,11 @@ config.background_color = BACKGROUND
 # so the ⋮ glyph aligns perfectly between the sieve stack and the vector.
 ROW_YS = (1.55, 0.35, -0.95, -2.30)
 
-# Pile heights — slightly steeper than half-ellipses for a mountain feel.
+# Pile heights — bigger than the first pass so labels read clearly inside.
 PILE_HEIGHTS = {
-    "M_N": 0.55,
-    "M_N-1": 0.45,
-    "M_1": 0.62,
+    "M_N": 0.70,
+    "M_N-1": 0.60,
+    "M_1": 0.78,
 }
 
 # Dashed/solid line positions are derived so piles rest exactly on a line.
@@ -73,10 +74,10 @@ VECTOR_X = 4.0
 
 # Scene 2 column positions.
 PILE_X = -5.0           # numerator pile centers
-SLASH_X = -3.2
-DENOM_X = -1.5          # denominator pile centers (M_N pile)
+SLASH_X = -3.0
+DENOM_X = -1.0          # denominator pile centers (full-size M_N pile)
 LINE_X_LO_S2 = -6.4
-LINE_X_HI_S2 = -0.3
+LINE_X_HI_S2 = 0.4
 
 
 # --- Mountain pile silhouette ------------------------------------------
@@ -132,10 +133,12 @@ def mountain_pile(
         fill_opacity=1.0,
         stroke_width=3.0,
     )
-    text = MathTex(label, color=color).scale(0.85 * height / 0.55)
+    # Dark version of the pile color for strong contrast against the light fill.
+    label_color = interpolate_color(color, BLACK, 0.60)
+    text = MathTex(label, color=label_color).scale(0.80 * height / 0.55)
     # Slightly above the geometric center so the label sits comfortably
     # under the rounded peak instead of in the wide base.
-    text.move_to(blob.get_center() + np.array([0, height * 0.10, 0]))
+    text.move_to(blob.get_center() + np.array([0, height * 0.08, 0]))
     return VGroup(blob, text)
 
 
@@ -218,11 +221,13 @@ class TotalMassRatios(Scene):
         dashed_lines, solid_line = make_horizontal_lines()
 
         # --- Per-row pile specs ---------------------------------------
-        # (line_y, width, height, color, label, dot_glyph?)
+        # Bigger piles so the M-labels fit clearly inside.
+        # (line_y, width, height, color, label)
+        MN_W = 2.4   # full-size M_N pile (same in numerator and denominator)
         numer_specs = [
-            (DASHED_YS[0], 2.0, PILE_HEIGHTS["M_N"], COARSE, r"M_N"),
-            (DASHED_YS[1], 1.65, PILE_HEIGHTS["M_N-1"], MID, r"M_{N-1}"),
-            (SOLID_Y, 2.35, PILE_HEIGHTS["M_1"], FINE, r"M_1"),
+            (DASHED_YS[0], MN_W, PILE_HEIGHTS["M_N"], COARSE, r"M_N"),
+            (DASHED_YS[1], 2.10, PILE_HEIGHTS["M_N-1"], MID, r"M_{N-1}"),
+            (SOLID_Y, 2.70, PILE_HEIGHTS["M_1"], FINE, r"M_1"),
         ]
 
         numerators = VGroup()
@@ -233,9 +238,10 @@ class TotalMassRatios(Scene):
             place_pile_on_line(num, PILE_X, line_y)
             numerators.add(num)
 
-            # The denominator on every row is the *M_N* pile — full pile
-            # shape (smaller width here so it fits within the half-line).
-            den = mountain_pile(1.55, PILE_HEIGHTS["M_N"], COARSE, r"M_N")
+            # Denominator on every row is the *M_N* pile — EXACTLY the same
+            # shape and size as the M_N numerator in the top row (same
+            # mathematical object).
+            den = mountain_pile(MN_W, PILE_HEIGHTS["M_N"], COARSE, r"M_N")
             place_pile_on_line(den, DENOM_X, line_y)
             denominators.add(den)
 
@@ -244,16 +250,12 @@ class TotalMassRatios(Scene):
             )
             slashes.add(sl)
 
-        # Vertical ellipsis at ROW_YS[2] — same scale in the sieve stack
-        # and in the vector so the ⋮ visually lines up between them.
+        # A single ⋮ glyph in the sieve stack (numerator column). It appears
+        # alongside the masses, not with the math operation.
         DOT_SCALE = 1.3
-        sieve_dots_num = (
+        sieve_dots = (
             MathTex(r"\vdots", color=FOREGROUND).scale(DOT_SCALE)
             .move_to([PILE_X, ROW_YS[2], 0])
-        )
-        sieve_dots_den = (
-            MathTex(r"\vdots", color=FOREGROUND).scale(DOT_SCALE)
-            .move_to([DENOM_X, ROW_YS[2], 0])
         )
 
         # --- Vector (built manually so the dots row uses DOT_SCALE) ---
@@ -284,15 +286,19 @@ class TotalMassRatios(Scene):
             Create(solid_line),
             run_time=0.9,
         )
-        # Numerators top to bottom.
-        for num in numerators:
+        # Numerator piles top to bottom — the ⋮ comes in at the start,
+        # together with the first piles (not with the math operation).
+        self.play(
+            FadeIn(numerators[0], shift=DOWN * 0.15),
+            Write(sieve_dots),
+            run_time=0.5,
+        )
+        for num in numerators[1:]:
             self.play(FadeIn(num, shift=DOWN * 0.15), run_time=0.4)
-        self.play(Write(sieve_dots_num), run_time=0.4)
-        # Slashes + denominator piles together.
+        # Math operation: slashes + denominator piles.
         self.play(
             *[Create(sl) for sl in slashes],
             *[FadeIn(d, shift=DOWN * 0.1) for d in denominators],
-            Write(sieve_dots_den),
             run_time=0.9,
         )
         # Vector brace + entries + Φ label.
@@ -312,7 +318,7 @@ class TotalMassRatios(Scene):
         self._numerators = numerators
         self._denominators = denominators
         self._slashes = slashes
-        self._sieve_dots = VGroup(sieve_dots_num, sieve_dots_den)
+        self._sieve_dots = sieve_dots
         self._vector = vector
         self._phi = phi_label
         self._title = title

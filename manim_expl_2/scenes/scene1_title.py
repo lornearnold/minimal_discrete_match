@@ -45,13 +45,14 @@ config.background_color = BACKGROUND
 
 # --- Layout ---------------------------------------------------------------
 
-# Axes (left).
-AXES_CENTER = np.array([-4.7, -0.5, 0])
+# Axes (left). Shifted right by ~one arrow width to fill more of the
+# available left-half space.
+AXES_CENTER = np.array([-4.0, -0.5, 0])
 AXES_X_LENGTH = 4.6
 AXES_Y_LENGTH = 4.4
 
 # Block arrow (between halves).
-ARROW_CENTER = np.array([-0.8, -0.5, 0])
+ARROW_CENTER = np.array([-0.5, -0.5, 0])
 
 # Image frame (right).
 IMAGE_CENTER = np.array([3.9, -0.5, 0])
@@ -189,6 +190,8 @@ class TitleQuestion(Scene):
         self.play(Create(curves[0]), run_time=0.8)
 
         # ---- Beat 2: arrow + GSD_0 + N_min + footnote -----------------------
+        # Each GSD image gets an extra ~1s of dwell so the eye can actually
+        # take in each packing photo before the next swaps in.
         self.play(FadeIn(arrow, shift=RIGHT * 0.2), run_time=0.5)
         self.play(
             FadeIn(gsd_images[0]),
@@ -196,7 +199,7 @@ class TitleQuestion(Scene):
             FadeIn(footnote),
             run_time=0.7,
         )
-        self.wait(0.6)
+        self.wait(1.6)
 
         # ---- Beat 3: add curve 2 + swap to GSD_1 ----------------------------
         self.play(
@@ -205,7 +208,7 @@ class TitleQuestion(Scene):
             Create(curves[1]),
             run_time=0.9,
         )
-        self.wait(0.3)
+        self.wait(1.3)
 
         # ---- Beat 4: add curve 3 + swap to GSD_2 ----------------------------
         self.play(
@@ -214,7 +217,7 @@ class TitleQuestion(Scene):
             Create(curves[2]),
             run_time=0.9,
         )
-        self.wait(0.5)
+        self.wait(1.5)
 
         # ---- Beat 5: question across the top, then box, then bold MDM -------
         question = tex_text(

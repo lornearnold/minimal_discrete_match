@@ -16,9 +16,11 @@ import numpy as np
 from manim import (
     DOWN,
     LEFT,
+    LineJointType,
     RED,
     RIGHT,
     UP,
+    YELLOW,
     Arrow,
     Axes,
     Create,
@@ -34,6 +36,7 @@ from manim import (
     Tex,
     Triangle,
     VGroup,
+    VMobject,
     Write,
     config,
     rgb_to_color,
@@ -93,21 +96,21 @@ def _marker(sf: int, color, position) -> VGroup:
     return m
 
 
-def _check_glyph(size: float = 0.32, color=GREEN) -> VGroup:
-    return VGroup(
-        Line(
-            [-size * 0.6, 0, 0],
-            [-size * 0.1, -size * 0.55, 0],
-            color=color,
-            stroke_width=6,
-        ),
-        Line(
-            [-size * 0.1, -size * 0.55, 0],
-            [size * 0.75, size * 0.55, 0],
-            color=color,
-            stroke_width=6,
-        ),
-    )
+def _check_glyph(size: float = 0.32, color=GREEN) -> VMobject:
+    """A check mark drawn as a single polyline with a rounded corner join,
+    so the two strokes read as one continuous mark instead of two abutting
+    lines.
+    """
+    points = [
+        np.array([-size * 0.6, 0, 0]),
+        np.array([-size * 0.1, -size * 0.55, 0]),
+        np.array([size * 0.75, size * 0.55, 0]),
+    ]
+    glyph = VMobject()
+    glyph.set_points_as_corners(points)
+    glyph.set_stroke(color=color, width=7)
+    glyph.joint_type = LineJointType.ROUND
+    return glyph
 
 
 def _x_glyph(size: float = 0.32, color=RED) -> VGroup:
@@ -146,13 +149,12 @@ def _bullet_labels():
 class VerificationUsage(Scene):
     def construct(self):
         title = tex_text(
-            "Verification and\nExample usage",
-            font_size=40,
+            "Verification and Example usage",
+            font_size=44,
             color=FOREGROUND,
-            line_buff=0.10,
-        ).to_corner(UP + LEFT, buff=0.35)
+        ).to_edge(UP, buff=0.35)
 
-        # ---- Axes (wider) ------------------------------------------
+        # ---- Axes (wider, shifted right) ---------------------------
         axes = Axes(
             x_range=[3, 9, 1],
             y_range=[3, 9, 1],
@@ -164,7 +166,7 @@ class VerificationUsage(Scene):
                 "stroke_width": 2,
                 "include_ticks": True,
             },
-        ).shift(DOWN * 0.4 + LEFT * 3.5)
+        ).shift(DOWN * 0.5 + LEFT * 2.8)
 
         x_label = MathTex(
             r"\log_{10} N_{\mathrm{sim}}\ (\mathrm{predicted})",
@@ -211,12 +213,14 @@ class VerificationUsage(Scene):
         scaled_positions = np.array(scaled_positions)
         s_center = scaled_positions.mean(axis=0)
 
-        # Diagonal unit vector in scene coordinates.
+        # Diagonal unit vector in scene coordinates. Since x_length ≠
+        # y_length, the 1:1 line is NOT at 45°; compute the actual angle.
         p_lo = axes.c2p(3, 3)
         p_hi = axes.c2p(9, 9)
         diag_vec = np.array(p_hi[:2]) - np.array(p_lo[:2])
         diag_unit = diag_vec / np.linalg.norm(diag_vec)
         perp_unit = np.array([-diag_unit[1], diag_unit[0]])
+        diag_angle = float(np.arctan2(diag_unit[1], diag_unit[0]))
 
         rel = scaled_positions - s_center
         s_major = np.max(np.abs(rel @ diag_unit)) + 0.55  # generous padding
@@ -225,14 +229,14 @@ class VerificationUsage(Scene):
         scaled_ellipse = Ellipse(
             width=2 * s_major,
             height=2 * s_minor,
-            color=FOREGROUND,
-            stroke_width=2.4,
-        ).rotate(np.pi / 4).move_to([*s_center, 0])
+            color=YELLOW,
+            stroke_width=2.6,
+        ).rotate(diag_angle).move_to([*s_center, 0])
 
         verif_label = tex_text(
             "Verification",
             font_size=28,
-            color=FOREGROUND,
+            color=YELLOW,
         ).move_to(axes.c2p(4.0, 7.5))
 
         # ---- Unscaled + slope-aligned ellipse ----------------------
@@ -253,7 +257,7 @@ class VerificationUsage(Scene):
             height=2 * u_minor,
             color=FOREGROUND,
             stroke_width=2.4,
-        ).rotate(np.pi / 4).move_to([*u_center, 0])
+        ).rotate(diag_angle).move_to([*u_center, 0])
 
         # ---- Bullet list (further right) ---------------------------
         bullets = VGroup()
@@ -265,8 +269,9 @@ class VerificationUsage(Scene):
         bullets.arrange(DOWN, aligned_edge=LEFT, buff=0.25)
 
         # Place bullets close to the right edge, top aligned with the
-        # unscaled ellipse.
-        bullets.next_to(axes, RIGHT, buff=1.2)
+        # unscaled ellipse. Buff is tight so "GSD → computation cost"
+        # (the widest bullet) doesn't run off the right side of the frame.
+        bullets.next_to(axes, RIGHT, buff=0.55)
         target_top_y = unscaled_ellipse.get_top()[1] - 0.15
         delta_y = target_top_y - bullets[0].get_top()[1]
         bullets.shift(UP * delta_y)
