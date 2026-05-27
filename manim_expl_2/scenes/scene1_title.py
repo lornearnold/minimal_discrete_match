@@ -131,9 +131,12 @@ class TitleQuestion(Scene):
         x_label = tex_text("grain size", font_size=22, color=FOREGROUND).next_to(
             x_tip, RIGHT, buff=0.12
         )
-        y_label = tex_text("% finer", font_size=22, color=FOREGROUND).next_to(
-            y_tip, UP, buff=0.10
-        )
+        # next_to centers the label horizontally over y_tip; since the
+        # y-axis sits near the left frame edge, "% finer" would otherwise
+        # spill off-screen. Anchor its LEFT edge to the y-axis instead.
+        y_label = tex_text("% finer", font_size=22, color=FOREGROUND)
+        y_label.next_to(y_tip, UP, buff=0.10)
+        y_label.shift(RIGHT * (y_tip.get_x() - y_label.get_left()[0]))
 
         # ---- Block arrow + N_min label --------------------------------------
         arrow = _block_arrow().move_to(ARROW_CENTER)

@@ -285,7 +285,7 @@ class VerificationUsage(Scene):
 
         # ---- Citation footnote -------------------------------------
         citation = tex_text(
-            "Verification data: Zeraati-Shamsabadi \\& Sadrekarimi (2025)",
+            "Verification data: Zeraati-Shamsabadi & Sadrekarimi (2025)",
             font_size=20,
             color=FOREGROUND,
         ).move_to([0, -3.78, 0])
@@ -310,10 +310,9 @@ class VerificationUsage(Scene):
         )
         self.play(Create(arrow), FadeIn(citation), run_time=0.6)
 
-        # Bullets revealed slowly; last item gets 2s on screen.
-        # 7 bullets: ~0.7s each except the last which gets a longer reveal
-        # followed by a 2s dwell.
+        # Bullets revealed slowly so the reveal extends to the end of the
+        # scene; the last item gets a 2-second dwell.
         for i, row in enumerate(bullets):
-            run_time = 0.50 if i < len(bullets) - 1 else 0.70
+            run_time = 0.95 if i < len(bullets) - 1 else 1.10
             self.play(FadeIn(row, shift=RIGHT * 0.15), run_time=run_time)
         self.wait(2.0)

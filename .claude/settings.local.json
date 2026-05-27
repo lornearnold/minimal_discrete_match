@@ -32,7 +32,10 @@
       "Bash(ffmpeg -y -sseof -1 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -vf \"crop=350:200:0:60\" -frames:v 1 qc_frames/s5_topleft.png)",
       "Bash(ffmpeg -y -sseof -1 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -vf \"crop=200:400:0:30,scale=600:1200\" -frames:v 1 qc_frames/s5_yaxis.png)",
       "Bash(open media/videos/full_video_v2/480p30/FullStoryV2.mp4)",
-      "Bash(ffmpeg -y -ss 5 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -vf \"crop=200:160:0:60,scale=600:480\" -frames:v 1 qc_frames/v2_t5_zoom.png)"
+      "Bash(ffmpeg -y -ss 5 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -vf \"crop=200:160:0:60,scale=600:480\" -frames:v 1 qc_frames/v2_t5_zoom.png)",
+      "Bash(ffmpeg -y -ss 11 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -frames:v 1 qc_frames/v3_t11_scene1.png)",
+      "Bash(ffmpeg -y -ss 35 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -frames:v 1 qc_frames/v3_t35_scene4.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -frames:v 1 qc_frames/v3_end.png)"
     ]
   }
 }
