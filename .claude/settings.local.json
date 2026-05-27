@@ -11,7 +11,28 @@
       "Bash(rm -f /tmp/si_frames/spi_*.png)",
       "Bash(ffmpeg -y -loglevel error -ss 76 -t 16 -i /Users/lornearnold/GitHub/discrete_analytical_mech/manim_exploration/media/videos/full_video/480p30/FullStory.mp4 -vf \"fps=1.5\" /tmp/si_frames/spi_%02d.png)",
       "Bash(ffmpeg -y -sseof -3 -i /Users/lornearnold/GitHub/discrete_analytical_mech/manim_exploration/media/videos/spanned_integer/480p15/SpannedIntegerCombined.mp4 -frames:v 1 /tmp/mdm_frames/sic_end.png)",
-      "Bash(ffmpeg -y -sseof -8 -i /Users/lornearnold/GitHub/discrete_analytical_mech/manim_exploration/media/videos/spanned_integer/480p15/SpannedIntegerCombined.mp4 -frames:v 1 /tmp/mdm_frames/sic_b4.png)"
+      "Bash(ffmpeg -y -sseof -8 -i /Users/lornearnold/GitHub/discrete_analytical_mech/manim_exploration/media/videos/spanned_integer/480p15/SpannedIntegerCombined.mp4 -frames:v 1 /tmp/mdm_frames/sic_b4.png)",
+      "Bash(ffmpeg -y -ss 0.5 -i media/videos/scene1_title/480p15/TitleQuestion.mp4 -frames:v 1 qc_frames/s1_t0.5.png)",
+      "Bash(ffmpeg -y -ss 3 -i media/videos/scene1_title/480p15/TitleQuestion.mp4 -frames:v 1 qc_frames/s1_t3.png)",
+      "Bash(ffmpeg -y -ss 5.5 -i media/videos/scene1_title/480p15/TitleQuestion.mp4 -frames:v 1 qc_frames/s1_t5.5.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/scene1_title/480p15/TitleQuestion.mp4 -frames:v 1 qc_frames/s1_end.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/scene2_mass/480p15/TotalMassRatios.mp4 -frames:v 1 qc_frames/s2_end.png)",
+      "Bash(ffmpeg -y -ss 2 -i media/videos/scene2_mass/480p15/TotalMassRatios.mp4 -frames:v 1 qc_frames/s2_mid.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/scene3_volume/480p15/VolumeRatios.mp4 -frames:v 1 qc_frames/s3_end.png)",
+      "Bash(ffmpeg -y -ss 5 -i media/videos/scene4_quantity/480p15/QuantityRatios.mp4 -frames:v 1 qc_frames/s4_setup.png)",
+      "Bash(ffmpeg -y -ss 7.5 -i media/videos/scene4_quantity/480p15/QuantityRatios.mp4 -frames:v 1 qc_frames/s4_callout.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/scene4_quantity/480p15/QuantityRatios.mp4 -frames:v 1 qc_frames/s4_end.png)",
+      "Bash(ffmpeg -y -ss 6 -i media/videos/scene4_quantity/480p15/QuantityRatios.mp4 -frames:v 1 qc_frames/s4_callout2.png)",
+      "Bash(ffmpeg -y -ss 9 -i media/videos/scene4_quantity/480p15/QuantityRatios.mp4 -frames:v 1 qc_frames/s4_question.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/scene4_quantity/480p15/QuantityRatios.mp4 -frames:v 1 qc_frames/s4_end2.png)",
+      "Bash(ffmpeg -y -ss 5 -i media/videos/scene5_verification/480p15/VerificationUsage.mp4 -frames:v 1 qc_frames/s5_mid.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/scene5_verification/480p15/VerificationUsage.mp4 -frames:v 1 qc_frames/s5_end.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/scene5_verification/480p15/VerificationUsage.mp4 -frames:v 1 qc_frames/s5_end2.png)",
+      "Bash(ffmpeg -y -sseof -0.5 -i media/videos/scene5_verification/480p15/VerificationUsage.mp4 -frames:v 1 qc_frames/s5_end3.png)",
+      "Bash(ffmpeg -y -sseof -1 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -vf \"crop=350:200:0:60\" -frames:v 1 qc_frames/s5_topleft.png)",
+      "Bash(ffmpeg -y -sseof -1 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -vf \"crop=200:400:0:30,scale=600:1200\" -frames:v 1 qc_frames/s5_yaxis.png)",
+      "Bash(open media/videos/full_video_v2/480p30/FullStoryV2.mp4)",
+      "Bash(ffmpeg -y -ss 5 -i media/videos/full_video_v2/480p30/FullStoryV2.mp4 -vf \"crop=200:160:0:60,scale=600:480\" -frames:v 1 qc_frames/v2_t5_zoom.png)"
     ]
   }
 }
