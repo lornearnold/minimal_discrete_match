@@ -51,7 +51,13 @@
       "Bash(python3 *)",
       "Bash(typst --version)",
       "Bash(typst compile *)",
-      "Bash(quarto --version)"
+      "Bash(quarto --version)",
+      "Bash(jupyter nbconvert *)",
+      "Bash(cat)",
+      "Bash(.venv/bin/python -)",
+      "Bash(cp /tmp/sieve_demo.csv sieve_data.csv)",
+      "Bash(.venv/bin/jupyter nbconvert *)",
+      "Bash(.venv/bin/python -c \"import json;nb=json.load\\(open\\('csv_to_mdm.ipynb'\\)\\);[print\\(''.join\\(o.get\\('text',[]\\)\\)\\) for c in nb['cells'] for o in c.get\\('outputs',[]\\)]\")"
     ]
   }
 }
