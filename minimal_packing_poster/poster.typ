@@ -38,6 +38,12 @@
   ),
 )
 
+#place(
+  top + left,
+  dx: 39.5mm, dy: 34mm,
+  line(length: 495mm, stroke: 1pt + dark-gray),
+)
+
 // Title
 #place(
   top + left,
@@ -52,10 +58,10 @@
 // Authors (presenting author bold; affiliation superscript)
 #place(
   top + left,
-  dx: 40mm, dy: 112.3mm,
+  dx: 40mm, dy: 70mm,
   box(width: 594.3mm, height: 33.8mm,
     text(size: 32pt, fill: black)[
-      *Lorne Arnold*#super[1)]
+      *Lorne Arnold*#super[1)], Caleb Arnold#super[2)]
     ],
   ),
 )
@@ -63,11 +69,12 @@
 // Affiliations
 #place(
   top + left,
-  dx: 40mm, dy: 150.7mm,
+  dx: 40mm, dy: 90mm,
   box(width: 594.3mm, height: 46.1mm,
     text(size: 24pt, fill: dark-gray)[
       #super[1)] University of Washington Tacoma, School of Engineering and
-      Technology, Tacoma, WA, USA
+      Technology, Tacoma, WA, USA \
+      #super[2)] Hunt Middle School, Tacoma, WA, USA
     ],
   ),
 )
@@ -75,14 +82,14 @@
 // Conference logo, top-right
 #place(
   top + left,
-  dx: 677.2mm, dy: 64.3mm,
+  dx: 677.2mm, dy: 26.3mm,
   image("assets/logos/icsmge_2026_vienna_large.jpg", width: 128mm),
 )
 
 // Red rule below header
 #place(
   top + left,
-  dx: 39.5mm, dy: 209.6mm,
+  dx: 39.5mm, dy: 130mm,
   line(length: 762mm, stroke: 1.6mm + brand-red),
 )
 
@@ -186,24 +193,35 @@
   voluptua.
 ]
 
-// Position the body content area
+
 #place(
   top + left,
-  dx: 39.8mm, dy: 220.5mm,
-  box(width: 761mm, height: 863.4mm,
+  dx: 80mm, dy: 131mm,
+  figure(
+        image("assets/figures/PosterVersion0000.png", width: 425mm),
+        caption: none,
+      )
+  
+)
+
+#place(
+  top + left,
+  dx: 39.8mm, dy: 141mm,
+  box(width: 761mm, height: 930mm,
     columns(3, gutter: 12.7mm)[
+      #v(220mm)
 
-      #h1[Abstract]
-      #lorem-para
-
+    #fig-cap(1)[The problem: minimal mapping of GSD to DEM] 
       #h1[Introduction]
-      #lorem-para
+      Soil is fundamentally a discrete material that is, nevertheless, commonly modeled as a continuum in part because of the computational expense of large-scale discrete element models (DEMs).
+      But exactly how computationally expensive is it to represent a given soil with discrete particles?
+      In other words, What is the smallest number of discrete particles needed to match a given grain size distribution?
+      
+      The *minimal discrete match (MDM)* is the smallest set of discrete particles needed to match a given GSD.\
+      \
+      
 
-      #lorem-para
-
-      #h1[Discrete definitions]
-      #lorem-short
-
+      #h1[GSD study suite]
       #figure(
         image("assets/figures/figure1_gsd_curvature_index.png", width: 100%),
         caption: none,
@@ -211,18 +229,56 @@
       #fig-cap(1)[Representative subset of the GSD suite with one example
         highlighted. The ratio of the red to blue dashed areas defines the
         curvature index #math.italic("I_C").]
+      
+      \
+      #h1[Discrete definitions]
+      Definitions needed: Sample, Grain Size Distribution, Conditions 1 - 4.
 
-      #lorem-para
+      *Sample*: \ 
+      $S = {(X_S,Q_S) in I_S}$ where \
+      $X_S$ is an ordered set of sizes in $S$,\
+      $Q_S$ is an unordered set of quantities,\
+      $I_S$ is the index set of the sample.\
 
-      #h1[GSD study suite]
-      #lorem-para
+      *Grain size dist.*:\
+      $G = {(X_S,M_S) in I_S}$ where \
+      $X_G$ is an ordered set of sizes in $G$,\
+      $M_G$ is an unordered set of masses,\
+      $I_G$ is the index set of the grain size distribution. \
+      #linebreak()
+      
+      \
+      #v(220mm) 
+
+      
+
+      Conditions summary:\
+      // There are at least four conditions relating $S$ and $G$ to be satisfied (see Paper 2205 for details).
+      // In summary, the conditions say that a discrete sample, $S$, is a discrete match for a grain size distribution, $G$, if the sum of all the massess of all the particles between each size in $X_G$ is equal to the associated mass $M_G$.
+
+      
+
+      
+
+
+
+      
 
 
 
       #h1[Minimal discrete match solution]
    
 
-      #lorem-short
+Quantity Ratio:\
+      $Phi = {m_j/m_(n_G-1) : j in I_G - 1}$; with elements $phi_j$ \ \
+      
+      $Zeta = {f(x_(n_S))/f(x_i) : i in I_S}$; with elements $zeta_i$ and where $f(x)$ is some mapping of $x arrow $ mass. \ \
+
+
+      $Kappa = {phi_i times zeta_i: i in I_S}$; with elements $kappa_i$\
+
+      Unfortunately, only $kappa_(n_S)$ is an integer and partial discrete particles are not allowed.
+      Rounding $Kappa$ to the nearest integer set gives a first-order approximation of the $M D M$, possibly sufficient or wildly inadequate depending on the application.
 
       #figure(
         image("assets/figures/figure2_convergence.png", width: 100%),
@@ -230,9 +286,36 @@
       )
       #fig-cap(3)[Convergence of discrete match error for the fixed-size and
         spanned-integer algorithms across the GSD suite.]
+        In addition to showing an extremely broad span over common soil types, the MDM concept can predict the number of particles needed to produce discrete samples of any volume.
+
+      // A brute force approach would be to incrementally increase $Kappa$ and re-round to the nearest integer (see paper for details). 
+      // This assumes the sizes are fixed (therefore it's the Fixed Size algorithm).
+      // But this is inefficient (requires several iterations) and incorrect because of the over-constraint of fixing size.
+      
+
+      // Spanned integer algorithm.
+      // The Spanned Integer algorithm takes advantage of the full range of possible values for $X_S$ and only iterates if the quantity ratios for the largest and smallest allowable sizes ($kappa_+$ and $kappa_-$, respectively) span an integer (thus the Spanned Integer algorithm).
+      // This finds the number of particles for each size in the MDM.
+      // The specific sizes in $X_S$ are found by inverting the mass scaling function $f(x)$ (see paper for details).
+
+      
 
       #h1[Results]
-      #lorem-short
+
+      Comparison with independent DEM work verifies the MDM's capability.
+      Because the MDM answers the fundamental question What is the ...
+      it's a powerful tool for experimental design in DEM for geomechanics simulations.
+
+      Essentially, MDM represents an analytical mapping from grain size distribution directly to computational time complexity without the need to generate any DEM samples.
+
+      #figure(
+        image("assets/figures/figure6_uscs_n.png", width: 100%),
+        caption: none,
+      )
+      #fig-cap(3)[Convergence of discrete match error for the fixed-size and
+        spanned-integer algorithms across the GSD suite.]
+      
+      
 
       #figure(
         image("assets/figures/figure3_demo_comparison.png", width: 100%),
@@ -241,15 +324,8 @@
       #fig-cap(3)[Convergence of discrete match error for the fixed-size and
         spanned-integer algorithms across the GSD suite.]
 
-      #h1[Discussion]
-      #lorem-short
 
-      #figure(
-        image("assets/figures/figure6_uscs_n.png", width: 100%),
-        caption: none,
-      )
-      #fig-cap(3)[Convergence of discrete match error for the fixed-size and
-        spanned-integer algorithms across the GSD suite.]
+      
 
       #h1[Conclusions]
       #lorem-short
@@ -268,6 +344,9 @@
       #v(0.4em)
       Terzaghi, K., 1925. _Erdbaumechanik auf bodenphysikalischer Grundlage._
       Vienna: Deuticke.
+
+
+      
     ]
   ),
 )

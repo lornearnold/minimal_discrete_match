@@ -29,13 +29,14 @@ from manim import (
 )
 
 
-def tex_text(text: str, font_size: int = 24, color=WHITE, line_buff: float = 0.15):
+def tex_text(text: str, font_size: int = 24, color=BLACK, line_buff: float = 0.15):
     """Tex-rendered (LaTeX) replacement for manim's Pango-based Text. Better
     kerning out of the box. Multi-line strings (with `\\n`) become a vertical
     VGroup of single-line Tex objects, kept centered.
 
     LaTeX special characters (& _ # %) are escaped automatically.
     """
+
     def _escape(s: str) -> str:
         return (
             s.replace("\\", r"\textbackslash{}")
@@ -54,10 +55,11 @@ def tex_text(text: str, font_size: int = 24, color=WHITE, line_buff: float = 0.1
         *[Tex(_escape(ln), font_size=font_size, color=color) for ln in lines]
     ).arrange(DOWN, buff=line_buff)
 
+
 # ---- Colors -----------------------------------------------------------------
 
-BACKGROUND = BLACK
-FOREGROUND = WHITE  # sieves, axes, text
+BACKGROUND = WHITE
+FOREGROUND = BLACK  # sieves, axes, text
 
 COARSE = RED
 MID = BLUE
@@ -71,16 +73,16 @@ FINE_R = 0.10
 
 # ---- Sieve openings (must satisfy coarse_d > top_opening > mid_d, etc.) -----
 
-TOP_OPENING = 0.45     # > 2*MID_R = 0.36, < 2*COARSE_R = 0.60
-MID_OPENING = 0.28     # > 2*FINE_R = 0.20, < 2*MID_R = 0.36
+TOP_OPENING = 0.45  # > 2*MID_R = 0.36, < 2*COARSE_R = 0.60
+MID_OPENING = 0.28  # > 2*FINE_R = 0.20, < 2*MID_R = 0.36
 BOTTOM_OPENING = 0.14  # < 2*FINE_R = 0.20 (retains fines)
 
 # ---- Sieve plate geometry ---------------------------------------------------
 
-SIEVE_WIDTH = 4.0          # x-extent in scene units
-SIEVE_DEPTH = 1.6          # y-extent (perspective foreshortening)
-SIEVE_SKEW = 1.0           # x-shift applied to the back edge for parallax
-SIEVE_VERTICAL_GAP = 1.8   # vertical separation between stacked sieves
+SIEVE_WIDTH = 4.0  # x-extent in scene units
+SIEVE_DEPTH = 1.6  # y-extent (perspective foreshortening)
+SIEVE_SKEW = 1.0  # x-shift applied to the back edge for parallax
+SIEVE_VERTICAL_GAP = 1.8  # vertical separation between stacked sieves
 
 
 def sieve_plate(
@@ -113,10 +115,14 @@ def sieve_plate(
     mesh = VGroup()
     for i in range(1, n_cells_x):
         t = i / n_cells_x
-        mesh.add(Line(fl + t * (fr - fl), bl + t * (br - bl), stroke_width=stroke * 0.5))
+        mesh.add(
+            Line(fl + t * (fr - fl), bl + t * (br - bl), stroke_width=stroke * 0.5)
+        )
     for j in range(1, n_cells_y):
         t = j / n_cells_y
-        mesh.add(Line(fl + t * (bl - fl), fr + t * (br - fr), stroke_width=stroke * 0.5))
+        mesh.add(
+            Line(fl + t * (bl - fl), fr + t * (br - fr), stroke_width=stroke * 0.5)
+        )
 
     plate = VGroup(border, mesh)
     plate.set_color(FOREGROUND)
@@ -260,9 +266,7 @@ def scatter_in_band(
     return cluster
 
 
-def y_to_radius(
-    y: float, y_lo: float, y_hi: float, r_lo: float, r_hi: float
-) -> float:
+def y_to_radius(y: float, y_lo: float, y_hi: float, r_lo: float, r_hi: float) -> float:
     """Linear y->radius map. y_hi -> r_hi (largest), y_lo -> r_lo (smallest)."""
     t = float(np.clip((y - y_lo) / (y_hi - y_lo), 0, 1))
     return r_lo + t * (r_hi - r_lo)

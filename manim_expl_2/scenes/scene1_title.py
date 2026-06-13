@@ -19,7 +19,6 @@ from pathlib import Path
 import numpy as np
 from manim import (
     DOWN,
-    LEFT,
     RIGHT,
     UP,
     Axes,
@@ -33,7 +32,6 @@ from manim import (
     Scene,
     Tex,
     Triangle,
-    VGroup,
     Write,
     config,
 )
@@ -47,15 +45,15 @@ config.background_color = BACKGROUND
 
 # Axes (left). Shifted right by ~one arrow width to fill more of the
 # available left-half space.
-AXES_CENTER = np.array([-4.0, -0.5, 0])
+AXES_CENTER = np.array([-4.5, -0.5, 0])
 AXES_X_LENGTH = 4.6
 AXES_Y_LENGTH = 4.4
 
 # Block arrow (between halves).
-ARROW_CENTER = np.array([-0.5, -0.5, 0])
+ARROW_CENTER = np.array([-0.99, -0.5, 0])
 
 # Image frame (right).
-IMAGE_CENTER = np.array([3.9, -0.5, 0])
+IMAGE_CENTER = np.array([3.5, -0.5, 0])
 IMAGE_HEIGHT = 5.2  # max height that still leaves room above for the title
 
 # Footnote position.
@@ -74,7 +72,7 @@ CURVE_PARAMS = [
     (2.8, 2.5),
     (1.6, 1.6),
 ]
-CURVE_COLORS = ["#FC6255", "#58C4DD", "#83C167"]
+CURVE_COLORS = ["#CE0103", "#013ECE", "#159F02"]
 
 
 def _block_arrow() -> Polygon:
@@ -141,9 +139,11 @@ class TitleQuestion(Scene):
 
         # ---- Block arrow + N_min label --------------------------------------
         arrow = _block_arrow().move_to(ARROW_CENTER)
-        nmin_label = MathTex(
-            r"N_{\min} = ???", color=FOREGROUND
-        ).scale(0.90).next_to(arrow, UP, buff=0.30)
+        nmin_label = (
+            MathTex(r"N_{\min} = ???", color=FOREGROUND)
+            .scale(0.90)
+            .next_to(arrow, UP, buff=0.30)
+        )
 
         # ---- CDF curves -----------------------------------------------------
         xs = np.linspace(0, 5, 200)
@@ -161,7 +161,7 @@ class TitleQuestion(Scene):
 
         # ---- GSD images (no border; large; below the eventual question box).
         img_dir = Path(__file__).resolve().parent.parent
-        gsd_paths = [img_dir / f"GSD_{i}.png" for i in range(3)]
+        gsd_paths = [img_dir / f"GSD_{i}_selection.png" for i in range(3)]
         gsd_images = []
         for p in gsd_paths:
             im = ImageMobject(str(p))
@@ -235,10 +235,14 @@ class TitleQuestion(Scene):
         ).move_to(question.get_center())
 
         # Bold via \textbf{} in Tex.
-        mdm = Tex(
-            r"\textbf{Minimal Discrete Match (MDM)}",
-            color=FOREGROUND,
-        ).scale(1.05).next_to(q_box, DOWN, buff=0.25)
+        mdm = (
+            Tex(
+                r"\textbf{Minimal Discrete Match (MDM)}",
+                color=FOREGROUND,
+            )
+            .scale(1.05)
+            .next_to(q_box, DOWN, buff=0.25)
+        )
 
         self.play(Write(question), run_time=1.1)
         self.play(Create(q_box), run_time=0.5)
