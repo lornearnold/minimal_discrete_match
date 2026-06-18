@@ -193,3 +193,7 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 .Rproj.user
+
+#Quarto
+minimal_packing_manuscript/minimal_packing_files/
+.claude/

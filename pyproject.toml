@@ -1,7 +1,7 @@
 [project]
 name = "gsd-lib"
 version = "0.1.0"
-description = "Discrete analytical mechanics library for grain size distributions"
+description = "Minimal discrete match"
 readme = "README.md"
 authors = [
     { name = "Lorne", email = "lornearnold@gmail.com" }
@@ -9,8 +9,13 @@ authors = [
 requires-python = ">=3.9"
 dependencies = [
     "ipympl>=0.9.7",
-    "manim>=0.19.0",
     "numpy>=1.20.0",
+    "ipykernel>=6.31.0",
+    "jupyter>=1.1.1",
+    "scipy>=1.13.1",
+    "pandas>=2.3.3",
+    "matplotlib>=3.9.4",
+    "seaborn>=0.13.2",
 ]
 
 [project.optional-dependencies]

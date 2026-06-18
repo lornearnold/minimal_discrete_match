@@ -18,7 +18,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-import math  # noqa: E402
 
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
@@ -326,18 +325,52 @@ def make_fig3():
         "D": [50, 70, 105, 175, 50, 70, 105, 175, 70, 105, 175, 70, 105, 175],
         "SF": [5, 5, 5, 5, 10, 10, 10, 10, 15, 15, 15, 20, 20, 20],
         "H": [
-            24.4, 24.3, 23.6, 23.6, 24.8, 25.2, 24.4, 24.4,
-            25.6, 24.6, 24.1, 26.0, 24.8, 25.0,
+            24.4,
+            24.3,
+            23.6,
+            23.6,
+            24.8,
+            25.2,
+            24.4,
+            24.4,
+            25.6,
+            24.6,
+            24.1,
+            26.0,
+            24.8,
+            25.0,
         ],
         "e_c": [
-            0.683, 0.684, 0.669, 0.699, 0.714, 0.645, 0.678, 0.672,
-            0.754, 0.645, 0.644, 0.800, 0.741, 0.748,
+            0.683,
+            0.684,
+            0.669,
+            0.699,
+            0.714,
+            0.645,
+            0.678,
+            0.672,
+            0.754,
+            0.645,
+            0.644,
+            0.800,
+            0.741,
+            0.748,
         ],
         "N": [
-            103075, 202972, 447161, 1255067,
-            12408, 24349, 54564, 155028,
-            7185, 15719, 44522,
-            2816, 6667, 18180,
+            103075,
+            202972,
+            447161,
+            1255067,
+            12408,
+            24349,
+            54564,
+            155028,
+            7185,
+            15719,
+            44522,
+            2816,
+            6667,
+            18180,
         ],
     }
     df = pd.DataFrame(zs_data)
@@ -345,9 +378,7 @@ def make_fig3():
 
     athabasca_sizes = np.array([0.076, 0.11, 0.15, 0.25, 0.43, 0.85, 2.40])
     athabasca_sizes = np.insert(athabasca_sizes, 0, athabasca_sizes[0] / 2)
-    athabasca_percent_passing = np.array(
-        [3.86, 5.14, 15.27, 60.13, 81.35, 93.40, 100]
-    )
+    athabasca_percent_passing = np.array([3.86, 5.14, 15.27, 60.13, 81.35, 93.40, 100])
     athabasca_percent_passing = np.insert(athabasca_percent_passing, 0, 0.0)
     athabasca_retained = np.zeros(len(athabasca_sizes))
     for i in range(len(athabasca_sizes) - 1):
@@ -356,8 +387,7 @@ def make_fig3():
         )
 
     df["G"] = [
-        GSD(sizes=athabasca_sizes * sf, masses=athabasca_retained)
-        for sf in df["SF"]
+        GSD(sizes=athabasca_sizes * sf, masses=athabasca_retained) for sf in df["SF"]
     ]
     df["MDM"] = [
         MinimalPackingGenerator(gsd, x_n_factor=0.5, tol=1e-2, flex=True).mps
@@ -378,16 +408,12 @@ def make_fig3():
         for gsd in unscaled_df["G"]
     ]
     unscaled_df["N_mdm"] = [sum(mdm.quantities) for mdm in unscaled_df["MDM"]]
-    unscaled_df["V_solids_mdm"] = [
-        mdm.total_volume for mdm in unscaled_df["MDM"]
-    ]
+    unscaled_df["V_solids_mdm"] = [mdm.total_volume for mdm in unscaled_df["MDM"]]
     unscaled_df["V_total_mdm"] = unscaled_df["V_solids_mdm"] * (1 + 0.67)
     unscaled_df["MDM_per_sample"] = (
         25 * np.pi * (unscaled_df["D"] / 2) ** 2
     ) / unscaled_df["V_total_mdm"]
-    unscaled_df["N_predicted"] = (
-        unscaled_df["N_mdm"] * unscaled_df["MDM_per_sample"]
-    )
+    unscaled_df["N_predicted"] = unscaled_df["N_mdm"] * unscaled_df["MDM_per_sample"]
 
     plt.close("all")
     fig, ax = plt.subplots()
@@ -404,40 +430,59 @@ def make_fig3():
 
     for _, row in df.iterrows():
         ax.scatter(
-            row["N_predicted"], row["N"], s=50,
+            row["N_predicted"],
+            row["N"],
+            s=50,
             marker=sf_to_marker[row["SF"]],
             color=d_to_color[row["D"]],
-            alpha=1, edgecolors="black", linewidth=0.5,
+            alpha=1,
+            edgecolors="black",
+            linewidth=0.5,
         )
 
     for _, row in unscaled_df.iterrows():
         ax.scatter(
-            row["N_predicted"], row["N_predicted"], s=100,
+            row["N_predicted"],
+            row["N_predicted"],
+            s=100,
             marker=sf_to_marker[1],
             color=d_to_color[row["D"]],
-            alpha=1, edgecolors="black", linewidth=0.5, zorder=5,
+            alpha=1,
+            edgecolors="black",
+            linewidth=0.5,
+            zorder=5,
         )
 
     from matplotlib.patches import FancyBboxPatch
 
     prediction_box = FancyBboxPatch(
-        (8e3, 5e6), width=2e8, height=2e8,
-        boxstyle="round", edgecolor="k", facecolor="none",
+        (8e3, 5e6),
+        width=2e8,
+        height=2e8,
+        boxstyle="round",
+        edgecolor="k",
+        facecolor="none",
     )
     ax.add_patch(prediction_box)
     data_box = FancyBboxPatch(
-        (1.2e3, 1.2e3), width=2e6, height=2e6,
-        boxstyle="round", edgecolor="k", facecolor="none",
+        (1.2e3, 1.2e3),
+        width=2e6,
+        height=2e6,
+        boxstyle="round",
+        edgecolor="k",
+        facecolor="none",
     )
     ax.add_patch(data_box)
 
     ax.text(
-        x=1e4, y=1e7,
+        x=1e4,
+        y=1e7,
         s="MDM predictions for N\nrequired to build\nunscaled DEM models\nof Athabasca sand",
         fontsize=12,
     )
     ax.text(
-        x=1.3e3, y=1.1e5,
+        x=1.3e3,
+        y=1.1e5,
         s="Zeraati-Shamsabadi \nand Sadrekarimi\n(2025) scaled\nDEM data",
         fontsize=12,
     )
@@ -445,7 +490,11 @@ def make_fig3():
     all_sf_values = sorted(list(sf_values) + [1])
     marker_legend_elements = [
         plt.scatter(
-            [], [], marker=sf_to_marker[sf], color="gray", s=50,
+            [],
+            [],
+            marker=sf_to_marker[sf],
+            color="gray",
+            s=50,
             label=f"SF = {sf}" if sf != 1 else "Unscaled",
         )
         for sf in all_sf_values
@@ -457,14 +506,22 @@ def make_fig3():
 
     ax.plot([1e3, 5e8], [1e3, 5e8], color="k", linestyle="--", linewidth=1)
     legend1 = ax.legend(
-        handles=marker_legend_elements, title="Scale Factor",
-        loc="upper left", bbox_to_anchor=(0.62, 0.66),
-        framealpha=1, edgecolor="1", fontsize="x-small",
+        handles=marker_legend_elements,
+        title="Scale Factor",
+        loc="upper left",
+        bbox_to_anchor=(0.62, 0.66),
+        framealpha=1,
+        edgecolor="1",
+        fontsize="x-small",
     )
     ax.legend(
-        handles=color_legend_elements, title="Sample D (mm)",
-        loc="upper left", bbox_to_anchor=(0.57, 0.33),
-        framealpha=1, edgecolor="1", fontsize="x-small",
+        handles=color_legend_elements,
+        title="Sample D (mm)",
+        loc="upper left",
+        bbox_to_anchor=(0.57, 0.33),
+        framealpha=1,
+        edgecolor="1",
+        fontsize="x-small",
     )
     ax.add_artist(legend1)
 
@@ -494,30 +551,32 @@ def build_large_df():
         size_max = sample.sizes[-1]
         size_min = sample.sizes[0]
         size_ratio = int(np.round(size_max / size_min, 0))
-        data_rows.append({
-            "GSD": mpgen.g,
-            "n_sieves": len(sample.sizes),
-            "mass_ratio": mass_ratio,
-            "size_ratio": size_ratio,
-            "vol_ratio": size_ratio ** 3,
-            "percent_fines": percent_fines,
-            "total_particles": total_particles,
-            "d_10": mpgen.g.d_10,
-            "d_30": mpgen.g.d_30,
-            "d_60": mpgen.g.d_60,
-            "cc": np.round(mpgen.g.cc, 3),
-            "cu": np.round(mpgen.g.cu, 3),
-            "gs_index": mpgen.g.gs_index,
-            "curvature_index": mpgen.g.curvature_index,
-            "slope": mpgen.g.slope,
-            "curvature": np.mean(mpgen.g.curvature),
-            "shape_factor": np.log10(
-                size_ratio ** 3 * (1 + np.mean(mpgen.g.curvature))
-            ),
-            "asdf": mass_ratio * size_ratio ** 3,
-            "group_symbol": mpgen.g.uscs_symbol,
-            "group_name": mpgen.g.uscs_name,
-        })
+        data_rows.append(
+            {
+                "GSD": mpgen.g,
+                "n_sieves": len(sample.sizes),
+                "mass_ratio": mass_ratio,
+                "size_ratio": size_ratio,
+                "vol_ratio": size_ratio**3,
+                "percent_fines": percent_fines,
+                "total_particles": total_particles,
+                "d_10": mpgen.g.d_10,
+                "d_30": mpgen.g.d_30,
+                "d_60": mpgen.g.d_60,
+                "cc": np.round(mpgen.g.cc, 3),
+                "cu": np.round(mpgen.g.cu, 3),
+                "gs_index": mpgen.g.gs_index,
+                "curvature_index": mpgen.g.curvature_index,
+                "slope": mpgen.g.slope,
+                "curvature": np.mean(mpgen.g.curvature),
+                "shape_factor": np.log10(
+                    size_ratio**3 * (1 + np.mean(mpgen.g.curvature))
+                ),
+                "asdf": mass_ratio * size_ratio**3,
+                "group_symbol": mpgen.g.uscs_symbol,
+                "group_name": mpgen.g.uscs_name,
+            }
+        )
 
     rng_big = np.random.default_rng(1)
     # Re-burn the small-batch rng draws so the large-batch results match the qmd
@@ -550,8 +609,12 @@ def build_large_df():
 def make_fig4(df):
     fig, ax = plt.subplots()
     ax.scatter(
-        df["mass_ratio"], df["total_particles"],
-        c=np.log10(df["vol_ratio"]), s=10, cmap="viridis", alpha=1,
+        df["mass_ratio"],
+        df["total_particles"],
+        c=np.log10(df["vol_ratio"]),
+        s=10,
+        cmap="viridis",
+        alpha=1,
     )
     colorbar = plt.colorbar(ax.collections[0], ax=ax)
     colorbar.set_label(r"Log$_{10}$Volume Ratio ($\zeta_1$)")
@@ -566,8 +629,12 @@ def make_fig4(df):
 def make_fig5(df):
     fig, ax = plt.subplots()
     ax.scatter(
-        df["curvature_index"], df["total_particles"],
-        c=np.log10(df["vol_ratio"]), s=10, cmap="viridis", alpha=1,
+        df["curvature_index"],
+        df["total_particles"],
+        c=np.log10(df["vol_ratio"]),
+        s=10,
+        cmap="viridis",
+        alpha=1,
     )
     colorbar = plt.colorbar(ax.collections[0], ax=ax)
     colorbar.set_label(r"Log$_{10}$Volume Ratio ($\zeta_1$)")
@@ -595,14 +662,20 @@ def make_fig6(df):
         for i, (label, group) in enumerate(df_plot.groupby(group_param)):
             symbol = group["group_symbol"].iloc[0]
             ax.scatter(
-                group[x_param], group[y_param],
+                group[x_param],
+                group[y_param],
                 label=f"{symbol} - {label.capitalize()}",
-                marker=markers[j], color=palette[i], s=40,
+                marker=markers[j],
+                color=palette[i],
+                s=40,
             )
 
     fig.legend(
-        loc="outside upper center", fontsize="small",
-        ncols=1, frameon=False, handlelength=2,
+        loc="outside upper center",
+        fontsize="small",
+        ncols=1,
+        frameon=False,
+        handlelength=2,
     )
     ax.set_xlabel("Grain Size Index")
     ax.set_ylabel("Particles in Discrete Match ($N_{MDM}$)")

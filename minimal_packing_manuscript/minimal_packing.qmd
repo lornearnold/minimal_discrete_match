@@ -6,10 +6,6 @@ execute:
 format:
   html:
     code-fold: true
-  docx:
-    toc: false
-    number-sections: false
-    reference-doc: manuscript_template.docx
   pdf:
     pdf-engine: pdflatex
 author:
